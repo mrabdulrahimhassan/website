@@ -313,6 +313,12 @@ const authError = document.getElementById("auth-error");
 function showAuthError(msg) { authError.textContent = msg; authError.hidden = false; }
 function clearAuthError() { authError.hidden = true; }
 
+// Shown over the auth screen while a login/signup/center-code request is in
+// flight, so the student sees the logo + "جاري التحميل" instead of a
+// button that looks frozen — then the app loads straight in on success.
+function showAuthLoading() { document.getElementById("auth-loading-overlay").hidden = false; }
+function hideAuthLoading() { document.getElementById("auth-loading-overlay").hidden = true; }
+
 /* ---------------------- Feature: block banned students from re-registering ----------------------
    A banned student can't just make a brand-new account to get back in. We check
    the identity details they're providing (phone, email, or the parentPhone+
@@ -386,6 +392,7 @@ document.getElementById("btn-login").addEventListener("click", async () => {
   const idVal = document.getElementById("login-id").value.trim();
   const pass = document.getElementById("login-pass").value;
   if (!idVal || !pass) return showAuthError("من فضلك أدخل البيانات كاملة");
+  showAuthLoading();
   try {
     const rows = await Sheet.list("Students", { filter: (r) => r[method] === idVal });
     const student = rows.find((r) => r.password === pass);
@@ -393,7 +400,7 @@ document.getElementById("btn-login").addEventListener("click", async () => {
     if (String(student.banned).toLowerCase() === "true") return showBanned();
     Session.set({ role: "student", id: student.id, fullName: student.fullName, grade: student.grade, phone: student.phone });
     enterApp();
-  } catch (err) { showAuthError("تعذر الاتصال بالمنصة، تأكد من اتصالك بالإنترنت أو حدّث الصفحة وحاول تاني"); console.error(err); }
+  } catch (err) { showAuthError("تعذر الاتصال بالمنصة، تأكد من اتصالك بالإنترنت أو حدّث الصفحة وحاول تاني"); console.error(err); } finally { hideAuthLoading(); }
 });
 
 document.getElementById("btn-signup").addEventListener("click", async () => {
@@ -416,6 +423,7 @@ document.getElementById("btn-signup").addEventListener("click", async () => {
   if (pass.length < 6) return showAuthError("كلمة المرور يجب ألا تقل عن ٦ خانات");
   if (pass !== pass2) return showAuthError("كلمتا المرور غير متطابقتين");
 
+  showAuthLoading();
   try {
     const existingPhone = await Sheet.list("Students", { filter: (r) => r.phone === phone });
     if (existingPhone.length) return showAuthError("رقم الهاتف مسجل بالفعل");
@@ -430,7 +438,7 @@ document.getElementById("btn-signup").addEventListener("click", async () => {
     });
     Session.set({ role: "student", id: created.id || `st_${Date.now()}`, fullName: name, grade, phone });
     enterApp();
-  } catch (err) { showAuthError("تعذر إنشاء الحساب، تأكد من اتصالك بالإنترنت أو حدّث الصفحة وحاول تاني"); console.error(err); }
+  } catch (err) { showAuthError("تعذر إنشاء الحساب، تأكد من اتصالك بالإنترنت أو حدّث الصفحة وحاول تاني"); console.error(err); } finally { hideAuthLoading(); }
 });
 
 /* ---------------------- Feature: register with a center code ---------------------- */
@@ -451,6 +459,7 @@ document.getElementById("btn-cc-lookup").addEventListener("click", async () => {
   clearAuthError();
   const code = document.getElementById("cc-code").value.trim();
   if (!code) return showAuthError("من فضلك أدخل الكود");
+  showAuthLoading();
   try {
     const rows = await Sheet.list("Students", { filter: (r) => r.centerCode === code });
     if (!rows.length) return showAuthError("الكود غير صحيح");
@@ -459,7 +468,7 @@ document.getElementById("btn-cc-lookup").addEventListener("click", async () => {
     setupCenterCompleteForm(ccStudentRow);
     document.getElementById("center-code-step").hidden = true;
     document.getElementById("center-complete-form").hidden = false;
-  } catch (err) { showAuthError("تعذر التحقق من الكود، تأكد من اتصالك بالإنترنت أو حدّث الصفحة وحاول تاني"); console.error(err); }
+  } catch (err) { showAuthError("تعذر التحقق من الكود، تأكد من اتصالك بالإنترنت أو حدّث الصفحة وحاول تاني"); console.error(err); } finally { hideAuthLoading(); }
 });
 
 // Only ask the student for whatever the teacher hasn't already filled in for
@@ -506,6 +515,7 @@ document.getElementById("btn-cc-complete").addEventListener("click", async () =>
   if (pass.length < 6) return showAuthError("كلمة المرور يجب ألا تقل عن ٦ خانات");
   if (pass !== pass2) return showAuthError("كلمتا المرور غير متطابقتين");
 
+  showAuthLoading();
   try {
     const existingUser = await Sheet.list("Students", { filter: (r) => r.username === username });
     if (existingUser.length) return showAuthError("اسم المستخدم مستخدم بالفعل، جرّب اسمًا آخر");
@@ -518,7 +528,7 @@ document.getElementById("btn-cc-complete").addEventListener("click", async () =>
     });
     Session.set({ role: "student", id: ccStudentRow.id, fullName: name, grade: ccStudentRow.grade, phone });
     enterApp();
-  } catch (err) { showAuthError("تعذر إكمال التسجيل، تأكد من اتصالك بالإنترنت أو حدّث الصفحة وحاول تاني"); console.error(err); }
+  } catch (err) { showAuthError("تعذر إكمال التسجيل، تأكد من اتصالك بالإنترنت أو حدّث الصفحة وحاول تاني"); console.error(err); } finally { hideAuthLoading(); }
 });
 
 /* ---------------------- Feature: forgot password (student) ---------------------- */
@@ -2189,6 +2199,36 @@ function updateConnBanner() {
 }
 window.addEventListener("online", updateConnBanner);
 window.addEventListener("offline", updateConnBanner);
+
+/* ---------------------- Feature: install-to-home-screen prompt ----------------------
+   Chrome/Android fires "beforeinstallprompt" when the manifest+icons above
+   make the site installable; we hold onto that event instead of letting the
+   browser show its own mini-infobar, and show our own banner with a direct
+   install button instead. NOTE: this API is Chromium-only — Safari/iOS never
+   fires it (there's no equivalent there; "Add to Home Screen" on iOS is a
+   manual step from the share sheet with no programmatic trigger), and even
+   on Chrome it only fires once the browser's own engagement/installability
+   heuristics are satisfied, so it won't necessarily appear on every visit. */
+let deferredInstallPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.getElementById("install-banner").hidden = false;
+});
+document.getElementById("btn-install").addEventListener("click", async () => {
+  if (!deferredInstallPrompt) return;
+  document.getElementById("install-banner").hidden = true;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+});
+document.getElementById("btn-install-dismiss").addEventListener("click", () => {
+  document.getElementById("install-banner").hidden = true;
+});
+window.addEventListener("appinstalled", () => {
+  document.getElementById("install-banner").hidden = true;
+  deferredInstallPrompt = null;
+});
 
 (async function boot() {
   updateConnBanner();

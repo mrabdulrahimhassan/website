@@ -16,6 +16,12 @@
 
 <div id="app">
   <div id="conn-banner" class="ar" dir="rtl" hidden>لا يوجد اتصال بالإنترنت — البيانات لن تتحدث الآن</div>
+  <div id="install-banner" class="ar" dir="rtl" hidden>
+    <img src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+    <span class="txt">ثبّت التطبيق على شاشتك الرئيسية عشان يبقى زي أي تطبيق عادي</span>
+    <button id="btn-install">تثبيت</button>
+    <button id="btn-install-dismiss" aria-label="إغلاق">×</button>
+  </div>
 
   <!-- ============ AUTH ============ -->
   <div id="view-auth" dir="rtl" class="ar" hidden>
@@ -228,6 +234,15 @@
 
   <div id="loading" class="screen" style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
     <div class="spinner"></div>
+  </div>
+
+  <!-- Shown over the auth screen while login/signup/center-code requests are
+       in flight, so the logo + "جاري التحميل" is what the student sees
+       instead of a frozen button, then the app loads straight in. -->
+  <div id="auth-loading-overlay" class="ar" dir="rtl" hidden>
+    <img src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+    <div class="spinner"></div>
+    <p class="heading">جاري التحميل...</p>
   </div>
 </div>
 

@@ -282,6 +282,22 @@ a{ color:inherit; }
   background:var(--rose); color:#fff;
 }
 
+#install-banner{
+  position:sticky; top:0; z-index:49; display:flex; align-items:center; gap:10px;
+  padding:9px 12px; background:var(--panel); border-bottom:1px solid var(--panel-line); font-size:12.5px;
+}
+#install-banner img{ height:26px; width:26px; border-radius:6px; flex-shrink:0; }
+#install-banner .txt{ flex:1; color:var(--ink); line-height:1.4; }
+#install-banner #btn-install{ background:var(--blue); color:#fff; padding:7px 14px; border-radius:999px; font-size:12.5px; font-weight:600; flex-shrink:0; }
+#install-banner #btn-install-dismiss{ color:var(--ink-soft); font-size:18px; line-height:1; padding:0 4px; flex-shrink:0; }
+
+#auth-loading-overlay{
+  position:fixed; inset:0; z-index:200; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+  background:var(--bg); text-align:center;
+}
+#auth-loading-overlay img{ height:64px; }
+#auth-loading-overlay p{ font-size:14px; color:var(--ink-soft); margin:0; }
+
 /* ---------------------- Leaderboard ---------------------- */
 .lb-row{ display:flex; align-items:center; gap:12px; padding:10px 4px; border-bottom:1px solid var(--panel-line); }
 .lb-rank{ width:26px; height:26px; border-radius:50%; background:var(--panel); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--ink-soft); flex-shrink:0; }
