@@ -132,15 +132,18 @@
           <div class="switch-link"><b id="cc-back-link" style="cursor:pointer;">رجوع</b></div>
         </div>
 
-        <!-- center code: step 2, complete the missing data -->
+        <!-- center code: step 2, complete the missing data only — fields the
+             teacher already filled in for this student are hidden by JS after
+             the code lookup (see setupCenterCompleteForm in app.js) -->
         <div id="center-complete-form" hidden>
-          <div class="field"><label>الاسم رباعيًا</label><input id="cc-name" type="text"></div>
-          <div class="field"><label>رقم الهاتف (١١ رقم)</label><input id="cc-phone" type="tel" maxlength="11" inputmode="numeric"></div>
-          <div class="field"><label>رقم هاتف ولي الأمر (١١ رقم)</label><input id="cc-parent-phone" type="tel" maxlength="11" inputmode="numeric"></div>
-          <div class="field"><label>البريد الإلكتروني (اختياري)</label><input id="cc-email" type="email"></div>
-          <div class="field-row">
-            <div class="field"><label>النوع</label><select id="cc-gender"><option value="male">ذكر</option><option value="female">أنثى</option></select></div>
-            <div class="field"><label>تاريخ الميلاد</label><input id="cc-dob" type="date"></div>
+          <div class="hint-msg" id="cc-prefilled-hint" hidden style="margin-bottom:12px;">بعض بياناتك متسجلة بالفعل من المستر — كمّل بس اللي ناقص</div>
+          <div class="field" id="cc-name-field"><label>الاسم رباعيًا</label><input id="cc-name" type="text"></div>
+          <div class="field" id="cc-phone-field"><label>رقم الهاتف (١١ رقم)</label><input id="cc-phone" type="tel" maxlength="11" inputmode="numeric"></div>
+          <div class="field" id="cc-parent-phone-field"><label>رقم هاتف ولي الأمر (١١ رقم)</label><input id="cc-parent-phone" type="tel" maxlength="11" inputmode="numeric"></div>
+          <div class="field" id="cc-email-field"><label>البريد الإلكتروني (اختياري)</label><input id="cc-email" type="email"></div>
+          <div class="field-row" id="cc-gender-dob-row">
+            <div class="field" id="cc-gender-field"><label>النوع</label><select id="cc-gender"><option value="male">ذكر</option><option value="female">أنثى</option></select></div>
+            <div class="field" id="cc-dob-field"><label>تاريخ الميلاد</label><input id="cc-dob" type="date"></div>
           </div>
           <div class="field"><label>اسم المستخدم (حروف إنجليزية صغيرة، بدون مسافات)</label><input id="cc-username" type="text" pattern="[a-z0-9_.]+"></div>
           <div class="field-row">

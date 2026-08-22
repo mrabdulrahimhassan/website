@@ -129,6 +129,7 @@ a{ color:inherit; }
 .switch-link b{ color:var(--blue); }
 
 .error-msg{ background:#FFF1F1; color:var(--rose); border:1px solid #FFD7DA; padding:9px 12px; border-radius:var(--radius-sm); font-size:13px; margin-bottom:12px; }
+.hint-msg{ background:#EAF1FF; color:var(--blue-deep); border:1px solid #D6E4FF; padding:9px 12px; border-radius:var(--radius-sm); font-size:12.5px; margin-bottom:12px; line-height:1.6; }
 
 /* ---------- Grade dashboard ---------- */
 .greeting{ margin-bottom:18px; }

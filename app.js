@@ -313,6 +313,29 @@ const authError = document.getElementById("auth-error");
 function showAuthError(msg) { authError.textContent = msg; authError.hidden = false; }
 function clearAuthError() { authError.hidden = true; }
 
+/* ---------------------- Feature: block banned students from re-registering ----------------------
+   A banned student can't just make a brand-new account to get back in. We check
+   the identity details they're providing (phone, email, or the parentPhone+
+   fullName pair — checking parentPhone alone would wrongly block legitimate
+   siblings who share a parent's number) against every BANNED row already in
+   the sheet. Only the teacher un-banning the original row lets them back in.
+   This can't stop someone from getting hold of a different, never-banned
+   student's real login and using that instead — there's no per-device or
+   per-session identity in a plain phone/email/username login, so that part
+   isn't something a check like this can close. VPN blocking (see boot()) is
+   a separate, unconditional gate that already applies to every visitor,
+   banned or not, before they ever reach these forms. */
+async function isBannedIdentity({ phone, email, parentPhone, fullName }) {
+  const banned = await Sheet.list("Students", { filter: (r) => String(r.banned).toLowerCase() === "true" });
+  const emailNorm = (email || "").trim().toLowerCase();
+  const nameNorm = (fullName || "").trim().toLowerCase();
+  return banned.some((r) =>
+    (phone && r.phone === phone) ||
+    (emailNorm && (r.email || "").trim().toLowerCase() === emailNorm) ||
+    (parentPhone && r.parentPhone === parentPhone && (r.fullName || "").trim().toLowerCase() === nameNorm)
+  );
+}
+
 function applyAuthPanels() {
   const role = document.querySelector("#auth-role-tabs button.active").dataset.role;
   const mode = document.querySelector("#auth-mode-tabs button.active").dataset.mode;
@@ -398,6 +421,9 @@ document.getElementById("btn-signup").addEventListener("click", async () => {
     if (existingPhone.length) return showAuthError("رقم الهاتف مسجل بالفعل");
     const existingUser = await Sheet.list("Students", { filter: (r) => r.username === username });
     if (existingUser.length) return showAuthError("اسم المستخدم مستخدم بالفعل، جرّب اسمًا آخر");
+    if (await isBannedIdentity({ phone, email, parentPhone, fullName: name })) {
+      return showAuthError("تم إيقاف حساب مرتبط بهذه البيانات من قبل المستر، تواصل معه لرفع الإيقاف قبل إنشاء حساب جديد");
+    }
     const created = await Sheet.create("Students", {
       id: `st_${Date.now()}`, fullName: name, phone, parentPhone, email, username, password: pass,
       gender, dob, grade, banned: "false", createdAt: new Date().toISOString(),
@@ -430,12 +456,33 @@ document.getElementById("btn-cc-lookup").addEventListener("click", async () => {
     if (!rows.length) return showAuthError("الكود غير صحيح");
     if (rows[0].password) return showAuthError("الكود ده مستخدم بالفعل، سجّل دخولك عاديًا");
     ccStudentRow = rows[0];
-    document.getElementById("cc-phone").value = ccStudentRow.phone || "";
-    document.getElementById("cc-parent-phone").value = ccStudentRow.parentPhone || "";
+    setupCenterCompleteForm(ccStudentRow);
     document.getElementById("center-code-step").hidden = true;
     document.getElementById("center-complete-form").hidden = false;
   } catch (err) { showAuthError("تعذر التحقق من الكود، تأكد من اتصالك بالإنترنت أو حدّث الصفحة وحاول تاني"); console.error(err); }
 });
+
+// Only ask the student for whatever the teacher hasn't already filled in for
+// this centerCode row — anything already present in the sheet is hidden and
+// carried through as-is instead of being asked again.
+function setupCenterCompleteForm(row) {
+  const fields = [
+    { input: "cc-name", wrap: "cc-name-field", value: row.fullName },
+    { input: "cc-phone", wrap: "cc-phone-field", value: row.phone },
+    { input: "cc-parent-phone", wrap: "cc-parent-phone-field", value: row.parentPhone },
+    { input: "cc-email", wrap: "cc-email-field", value: row.email },
+    { input: "cc-gender", wrap: "cc-gender-field", value: row.gender },
+    { input: "cc-dob", wrap: "cc-dob-field", value: row.dob },
+  ];
+  fields.forEach(({ input, wrap, value }) => {
+    const inputEl = document.getElementById(input);
+    const wrapEl = document.getElementById(wrap);
+    if (value) { inputEl.value = value; wrapEl.hidden = true; }
+    else { inputEl.value = ""; wrapEl.hidden = false; }
+  });
+  document.getElementById("cc-gender-dob-row").hidden = document.getElementById("cc-gender-field").hidden && document.getElementById("cc-dob-field").hidden;
+  document.getElementById("cc-prefilled-hint").hidden = !fields.some((f) => f.value);
+}
 
 document.getElementById("btn-cc-complete").addEventListener("click", async () => {
   clearAuthError();
@@ -450,9 +497,11 @@ document.getElementById("btn-cc-complete").addEventListener("click", async () =>
   const pass = document.getElementById("cc-pass").value;
   const pass2 = document.getElementById("cc-pass2").value;
 
-  if (name.split(/\s+/).filter(Boolean).length < 4) return showAuthError("الاسم يجب أن يكون رباعيًا");
-  if (!/^\d{11}$/.test(phone)) return showAuthError("رقم الهاتف يجب أن يكون ١١ رقمًا");
-  if (!/^\d{11}$/.test(parentPhone)) return showAuthError("رقم هاتف ولي الأمر يجب أن يكون ١١ رقمًا");
+  // Only validate the fields the student actually had to fill in — anything
+  // the teacher already pre-filled (hidden field) is trusted as-is.
+  if (!document.getElementById("cc-name-field").hidden && name.split(/\s+/).filter(Boolean).length < 4) return showAuthError("الاسم يجب أن يكون رباعيًا");
+  if (!document.getElementById("cc-phone-field").hidden && !/^\d{11}$/.test(phone)) return showAuthError("رقم الهاتف يجب أن يكون ١١ رقمًا");
+  if (!document.getElementById("cc-parent-phone-field").hidden && !/^\d{11}$/.test(parentPhone)) return showAuthError("رقم هاتف ولي الأمر يجب أن يكون ١١ رقمًا");
   if (!/^[a-z0-9_.]+$/.test(username)) return showAuthError("اسم المستخدم أحرف إنجليزية صغيرة وأرقام فقط");
   if (pass.length < 6) return showAuthError("كلمة المرور يجب ألا تقل عن ٦ خانات");
   if (pass !== pass2) return showAuthError("كلمتا المرور غير متطابقتين");
@@ -460,6 +509,9 @@ document.getElementById("btn-cc-complete").addEventListener("click", async () =>
   try {
     const existingUser = await Sheet.list("Students", { filter: (r) => r.username === username });
     if (existingUser.length) return showAuthError("اسم المستخدم مستخدم بالفعل، جرّب اسمًا آخر");
+    if (await isBannedIdentity({ phone, email, parentPhone, fullName: name })) {
+      return showAuthError("تم إيقاف حساب مرتبط بهذه البيانات من قبل المستر، تواصل معه لرفع الإيقاف قبل إكمال التسجيل");
+    }
     await Sheet.update("Students", ccStudentRow.rowIndex, {
       fullName: name, phone, parentPhone, email, username, password: pass, gender, dob,
       banned: "false", createdAt: new Date().toISOString(),
