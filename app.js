@@ -32,6 +32,13 @@
    ForumReplies  | id | postId | studentId | studentName | text | createdAt
    VocabAttempts | id | studentId | vocabId | wordEn | correct | date
    Admins        | id | username | password | name | createdAt
+   QuizAttempts  | id | studentId | taskId | questionId | questionText | selectedAnswer | correctAnswer | correct | date
+   VocabSRS      | id | studentId | vocabId | wordEn | wordAr | level | dueDate | lastReviewed
+   SpeakingPrompts | id | grade | text
+   SpeakingAttempts | id | studentId | promptId | transcript | score | date
+   TaskCompletions | id | studentId | taskId | taskType | date
+   Goals         | id | studentId | targetCount | weekStart | createdAt
+   GameScores    | id | studentId | moves | timeSeconds | date
 
    grade values used across the app: prep1, prep2, prep3, sec1, sec2, sec3
    task.type values: video | text | pdf | audio | quiz   (max 25 tasks per lecture)
@@ -49,6 +56,21 @@
      the student then looks themself up by that code and fills in the rest.
    Notifications.grade / Schedule.grade / TeacherFiles.grade / Homework.grade:
      a specific grade value, or the literal string "all" to target every grade.
+   QuizAttempts: one row per question answered in any renderQuiz() session —
+     powers "مراجعة أخطائي" (general quiz mistake review), separate from the
+     vocab-only "كلماتي الصعبة".
+   VocabSRS.level: 0-5, mapped to SRS_INTERVAL_DAYS = [0,1,3,7,14,30] — a
+     correct review bumps the level up (further dueDate); a wrong one resets
+     it to 0 (due again immediately). Upserted by upsertVocabSRS(), called
+     both from a normal تسميع session and from the "مراجعة الكلمات" screen.
+   SpeakingPrompts: teacher-authored English sentences for "تمرين النطق"
+     (pronunciation practice); grade is a specific grade value or "all".
+   TaskCompletions: one row per finished task/quiz/تسميع session (any type),
+     written purely so "هدفي الأسبوعي" can count activity over a rolling
+     7-day window — separate from Progress (localStorage-only, undated) and
+     from Scores (score-specific, quiz/vocab only).
+   Goals: one row per time the student sets/changes their weekly target —
+     renderWeeklyGoalCard() always uses the most recently created row.
    ===================================================================== */
 
 /* ---------------------- PWA manifest (injected, keeps the app to 3 files) ---------------------- */
@@ -689,6 +711,26 @@ function linkify(text, escapeFirst = false) {
     return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>${suffix}`;
   });
 }
+
+/* ---------------------- Feature: shareable deep links ----------------------
+   Builds a link like index.html#course=<id> (matching the format the
+   existing course-share button in renderCourse already generates — that
+   button worked cosmetically before but nothing ever read the hash back,
+   so sharing a course link didn't actually take the recipient anywhere;
+   this adds the missing piece). handleDeepLink() below reads the same
+   #course=/#lecture=/#file=/#post= hash once the student is logged in and
+   jumps straight to the right screen. */
+function buildShareLink(type, id) {
+  return `${location.href.split("#")[0]}#${type}=${id}`;
+}
+async function shareLink(type, id, label) {
+  const shareText = `${label || "Mr. Abdulrahim Hassan"}\n${buildShareLink(type, id)}`;
+  try {
+    if (navigator.share) await navigator.share({ title: "Mr. Abdulrahim Hassan", text: shareText });
+    else { await navigator.clipboard.writeText(shareText); toast("تم نسخ الرابط"); }
+  } catch { /* user cancelled the native share sheet — no action needed */ }
+}
+
 // Shared English pronunciation helper — used by the vocab (تسميع) test itself
 // (auto-play only, no manual replay there) and by the student's personal
 // word bank (openWordBank), where replaying pronunciation is always allowed.
@@ -790,7 +832,30 @@ async function renderHome() {
           ${svgIcon('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>')}
           <span>لوحة الكلمات</span>
         </button>
+        <button class="quick-link" id="ql-support">
+          ${svgIcon('<path d="M21 15a4 4 0 0 1-4 4H8l-5 3V6a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>')}
+          <span>الدعم الفني</span>
+        </button>
+        <button class="quick-link" id="ql-quizmistakes">
+          ${svgIcon('<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>')}
+          <span>مراجعة أخطائي</span>
+        </button>
+        <button class="quick-link" id="ql-vocabreview">
+          ${svgIcon('<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>')}
+          <span>مراجعة الكلمات</span>
+        </button>
+        <button class="quick-link" id="ql-speaking">
+          ${svgIcon('<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>')}
+          <span>تمرين النطق</span>
+        </button>
+        <button class="quick-link" id="ql-wordgame">
+          ${svgIcon('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>')}
+          <span>لعبة الكلمات</span>
+        </button>
       </div>
+
+      <div class="section-title"><h3>هدفي الأسبوعي</h3></div>
+      <div id="weekly-goal-card"><div class="spinner"></div></div>
 
       <div class="section-title"><h3>الكورسات</h3></div>
       <div class="search-box">
@@ -809,14 +874,21 @@ async function renderHome() {
   document.getElementById("ql-booking").addEventListener("click", () => openBooking(s));
   document.getElementById("ql-hardwords").addEventListener("click", () => openHardWords(s));
   document.getElementById("ql-wordbank").addEventListener("click", () => openWordBank(s));
+  document.getElementById("ql-support").addEventListener("click", () => window.open("https://mrabdulrahimsup.oneapp.dev/", "_blank"));
+  document.getElementById("ql-quizmistakes").addEventListener("click", () => openQuizMistakes(s));
+  document.getElementById("ql-vocabreview").addEventListener("click", () => openVocabReview(s));
+  document.getElementById("ql-speaking").addEventListener("click", () => openSpeakingPractice(s));
+  document.getElementById("ql-wordgame").addEventListener("click", () => openWordGame(s));
   refreshNotifBadge(s);
+  renderWeeklyGoalCard(s);
   try {
     const courses = await Sheet.list("Courses", { filter: (r) => r.grade === s.grade });
     const wrap = document.getElementById("home-courses");
     if (!courses.length) { wrap.outerHTML = `<div class="empty">لا توجد كورسات متاحة لصفك الدراسي حاليًا</div>`; return; }
     function draw(list) {
       wrap.innerHTML = list.length ? list.map((c) => `
-        <div class="course-card" data-id="${c.id}">
+        <div class="course-card" data-id="${c.id}" style="position:relative;">
+          <button class="icon-btn" data-share-course="${c.id}" data-title="${escapeHtml(c.titleAr || c.title || "")}" title="مشاركة الرابط" style="position:absolute;top:8px;left:8px;z-index:2;background:rgba(255,255,255,.9);">${svgIcon('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>')}</button>
           <img class="thumb" src="${c.image || ""}" onerror="this.style.display='none'">
           <div class="body">
             <div class="title">${c.titleAr || c.title}</div>
@@ -827,6 +899,9 @@ async function renderHome() {
       wrap.querySelectorAll(".course-card").forEach((card) =>
         card.addEventListener("click", () => renderCourse(card.dataset.id, courses.find((c) => c.id === card.dataset.id)))
       );
+      wrap.querySelectorAll("button[data-share-course]").forEach((btn) =>
+        btn.addEventListener("click", (e) => { e.stopPropagation(); shareLink("course", btn.dataset.shareCourse, btn.dataset.title); })
+      );
       list.forEach((c) => attachCourseProgress(s.id, c.id));
     }
     draw(courses);
@@ -835,6 +910,64 @@ async function renderHome() {
       draw(courses.filter((c) => (c.titleAr || "").toLowerCase().includes(q) || (c.title || "").toLowerCase().includes(q)));
     });
   } catch (err) { document.getElementById("home-courses").outerHTML = `<div class="empty">تعذر تحميل الكورسات</div>`; console.error(err); }
+}
+
+/* ---------------------- Feature: weekly personal goal (DB-backed) ----------------------
+   A student sets how many tasks/quizzes/تسميع sessions they want to finish
+   this week; progress is counted from TaskCompletions (written whenever any
+   task, quiz, or vocab test is completed — see the hooks in completeTask(),
+   the quiz finish(), and the vocab finish() above) over a rolling 7-day
+   window, not a fixed Sat–Fri calendar week, to keep the logic simple. */
+async function renderWeeklyGoalCard(s) {
+  const card = document.getElementById("weekly-goal-card");
+  if (!card) return;
+  try {
+    const weekAgo = new Date(Date.now() - 7 * 86400000);
+    const [goals, completions] = await Promise.all([
+      Sheet.list("Goals", { filter: (r) => r.studentId === s.id }),
+      Sheet.list("TaskCompletions", { filter: (r) => r.studentId === s.id && new Date(r.date) >= weekAgo }),
+    ]);
+    const latestGoal = goals.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    const done = completions.length;
+    if (!latestGoal) {
+      card.innerHTML = `
+        <div class="path-card">
+          <div class="sub" style="margin-bottom:10px;">حدّد كام مهمة/اختبار/تسميع عايز تخلّص منهم الأسبوع ده</div>
+          <div style="display:flex;gap:8px;">
+            <input id="goal-target" type="number" min="1" max="200" placeholder="مثلًا: ١٠" style="flex:1;padding:10px 12px;border-radius:10px;border:1.5px solid var(--panel-line);">
+            <button class="btn-primary" id="goal-set" style="width:auto;padding:0 16px;">حفظ الهدف</button>
+          </div>
+        </div>`;
+      document.getElementById("goal-set").addEventListener("click", async () => {
+        const target = Number(document.getElementById("goal-target").value);
+        if (!target || target < 1) return toast("اكتب رقم صحيح أكبر من صفر");
+        try {
+          await Sheet.create("Goals", { id: `gl_${Date.now()}`, studentId: s.id, targetCount: target, weekStart: new Date().toISOString(), createdAt: new Date().toISOString() });
+          renderWeeklyGoalCard(s);
+        } catch { toast("تعذر حفظ الهدف"); }
+      });
+      return;
+    }
+    const target = Number(latestGoal.targetCount) || 1;
+    const pct = Math.min(100, Math.round((done / target) * 100));
+    card.innerHTML = `
+      <div class="path-card">
+        <div class="sub" style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <span>${done} من ${target}</span>
+          <span>${pct >= 100 ? "🎉 خلصت هدفك!" : `${pct}%`}</span>
+        </div>
+        <div class="level-bar"><div style="width:${pct}%"></div></div>
+        <button class="btn-ghost" id="goal-edit" style="margin-top:10px;">تغيير الهدف</button>
+      </div>`;
+    document.getElementById("goal-edit").addEventListener("click", async () => {
+      const target2 = Number(prompt("عدد المهام الجديد للهدف الأسبوعي:", String(target)));
+      if (!target2 || target2 < 1) return;
+      try {
+        await Sheet.create("Goals", { id: `gl_${Date.now()}`, studentId: s.id, targetCount: target2, weekStart: new Date().toISOString(), createdAt: new Date().toISOString() });
+        renderWeeklyGoalCard(s);
+      } catch { toast("تعذر تحديث الهدف"); }
+    });
+  } catch (err) { card.innerHTML = `<div class="empty">تعذر تحميل الهدف الأسبوعي</div>`; console.error(err); }
 }
 
 /* ---------------------- Leaderboard ---------------------- */
@@ -968,11 +1101,15 @@ async function openTeacherFiles(grade) {
         <div class="file-row">
           ${svgIcon(f.type === "pdf" ? ICONS.pdf : '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>')}
           <div class="name">${f.title}</div>
+          <button class="icon-btn" data-share-file="${f.id}" data-title="${escapeHtml(f.title)}" title="مشاركة الرابط">${svgIcon('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>')}</button>
           <button data-url="${f.fileUrl}" data-name="${f.title}">تحميل</button>
         </div>`).join("") : `<div class="empty">لسه المستر مرفعش ملفات</div>`}`;
     document.getElementById("report-close").addEventListener("click", () => { overlay.hidden = true; });
-    content.querySelectorAll(".file-row button").forEach((btn) =>
+    content.querySelectorAll(".file-row button[data-url]").forEach((btn) =>
       btn.addEventListener("click", () => forceDownload(btn.dataset.url, btn.dataset.name))
+    );
+    content.querySelectorAll("button[data-share-file]").forEach((btn) =>
+      btn.addEventListener("click", () => shareLink("file", btn.dataset.shareFile, btn.dataset.title))
     );
   } catch (err) { content.innerHTML = `<div class="empty">تعذر تحميل الملفات</div>`; console.error(err); }
 }
@@ -1159,6 +1296,278 @@ async function openWordBank(s) {
   } catch (err) { content.innerHTML = `<div class="empty">تعذر تحميل لوحة الكلمات</div>`; console.error(err); }
 }
 
+/* ---------------------- Feature: general quiz mistake review (DB-backed) ----------------------
+   Every question answered in any renderQuiz() attempt is logged to
+   QuizAttempts (see the click handler inside renderQuiz). This surfaces the
+   ones the student got wrong, across every quiz, not just vocab — the
+   companion to "كلماتي الصعبة" which only covers تسميع words. */
+async function openQuizMistakes(s) {
+  const overlay = document.getElementById("report-overlay");
+  const content = document.getElementById("report-content");
+  overlay.hidden = false;
+  content.innerHTML = `<div class="spinner"></div>`;
+  try {
+    const attempts = await Sheet.list("QuizAttempts", { filter: (r) => r.studentId === s.id });
+    const latestByQuestion = new Map(); // keep only the most recent attempt per question
+    attempts.forEach((a) => {
+      const prev = latestByQuestion.get(a.questionId);
+      if (!prev || new Date(a.date) > new Date(prev.date)) latestByQuestion.set(a.questionId, a);
+    });
+    const wrongOnes = Array.from(latestByQuestion.values())
+      .filter((a) => String(a.correct).toLowerCase() !== "true")
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 40);
+    content.innerHTML = `
+      <div class="report-head">
+        <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+        <button class="btn-ghost" id="report-close" style="width:auto;padding:6px 14px;">إغلاق</button>
+      </div>
+      <div class="report-title heading">مراجعة أخطائي</div>
+      <div class="report-sub">أسئلة الاختبارات اللي جاوبت عليها غلط آخر مرة — جاوبتها صح بعد كده؟ خش الاختبار تاني وهتتحدث هنا تلقائيًا</div>
+      ${wrongOnes.length ? wrongOnes.map((a) => `
+        <div class="path-card" style="margin-bottom:10px;">
+          <div class="title">${escapeHtml(a.questionText || a.questionId)}</div>
+          <div class="sub" style="margin-top:6px;">
+            <span style="color:var(--rose);">إجابتك: ${escapeHtml(a.selectedAnswer || "—")}</span><br>
+            <span style="color:var(--mint);">الصح: ${escapeHtml(a.correctAnswer || "—")}</span>
+          </div>
+        </div>`).join("")
+        : `<div class="empty">مفيش أي أخطاء مسجلة — كل اللي جاوبته صح، أو لسه معملتش اختبارات</div>`}`;
+    document.getElementById("report-close").addEventListener("click", () => { overlay.hidden = true; });
+  } catch (err) { content.innerHTML = `<div class="empty">تعذر تحميل المراجعة</div>`; console.error(err); }
+}
+
+/* ---------------------- Feature: vocab spaced-repetition review (DB-backed) ----------------------
+   Every تسميع answer also upserts a VocabSRS row (see upsertVocabSRS, called
+   from renderVocab) tracking a simple level 0-5 and a dueDate. Getting a word
+   right pushes its level up and its next due date further out; getting it
+   wrong resets it to level 0 (due again right away). This screen shows only
+   the words that are due today, self-graded flashcard style — the student
+   sees the Arabic meaning, tries to recall the English, reveals the answer,
+   then honestly marks whether they knew it. */
+const SRS_INTERVAL_DAYS = [0, 1, 3, 7, 14, 30]; // level -> days until the next time it's due
+async function upsertVocabSRS(studentId, vocabId, wordEn, wordAr, isCorrect) {
+  const rows = await Sheet.list("VocabSRS", { filter: (r) => r.studentId === studentId && r.vocabId === vocabId });
+  const prevLevel = rows.length ? Number(rows[0].level) || 0 : 0;
+  const newLevel = isCorrect ? Math.min(prevLevel + 1, SRS_INTERVAL_DAYS.length - 1) : 0;
+  const dueDate = new Date(Date.now() + SRS_INTERVAL_DAYS[newLevel] * 86400000).toISOString();
+  const row = { studentId, vocabId, wordEn, wordAr, level: newLevel, dueDate, lastReviewed: new Date().toISOString() };
+  if (rows.length) await Sheet.update("VocabSRS", rows[0].rowIndex, row);
+  else await Sheet.create("VocabSRS", { id: `srs_${Date.now()}`, ...row });
+}
+async function openVocabReview(s) {
+  const overlay = document.getElementById("report-overlay");
+  const content = document.getElementById("report-content");
+  overlay.hidden = false;
+  content.innerHTML = `<div class="spinner"></div>`;
+  try {
+    const rows = await Sheet.list("VocabSRS", { filter: (r) => r.studentId === s.id && new Date(r.dueDate) <= new Date() });
+    let i = 0;
+    function draw() {
+      if (i >= rows.length) {
+        content.innerHTML = `
+          <div class="report-head">
+            <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+            <button class="btn-ghost" id="report-close" style="width:auto;padding:6px 14px;">إغلاق</button>
+          </div>
+          <div class="report-title heading">مراجعة الكلمات</div>
+          <div class="empty">${rows.length === 0 ? "مفيش كلمات مستحقة مراجعة النهارده — عاش! 🎉" : "خلّصت كل الكلمات المستحقة النهارده 🎉"}</div>`;
+        document.getElementById("report-close").addEventListener("click", () => { overlay.hidden = true; });
+        return;
+      }
+      const w = rows[i];
+      content.innerHTML = `
+        <div class="report-head">
+          <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+          <button class="btn-ghost" id="report-close" style="width:auto;padding:6px 14px;">إغلاق</button>
+        </div>
+        <div class="report-title heading">مراجعة الكلمات</div>
+        <div class="report-sub">${i + 1} / ${rows.length}</div>
+        <div style="text-align:center;padding:30px 10px;" dir="rtl">
+          <div class="heading" style="font-size:24px;">${escapeHtml(w.wordAr)}</div>
+          <div id="vsrs-answer" class="heading" style="font-size:20px;color:var(--blue);margin-top:14px;" hidden>${escapeHtml(w.wordEn)}</div>
+          <button class="btn-ghost" id="vsrs-reveal" style="margin-top:16px;max-width:220px;margin-inline:auto;">إظهار الإجابة</button>
+        </div>
+        <div id="vsrs-grade" style="display:flex;gap:10px;" hidden>
+          <button class="btn-ghost" id="vsrs-forgot" style="color:var(--rose);">نسيتها</button>
+          <button class="btn-primary" id="vsrs-knew">تذكرتها</button>
+        </div>`;
+      document.getElementById("report-close").addEventListener("click", () => { overlay.hidden = true; });
+      document.getElementById("vsrs-reveal").addEventListener("click", () => {
+        document.getElementById("vsrs-answer").hidden = false;
+        document.getElementById("vsrs-reveal").hidden = true;
+        document.getElementById("vsrs-grade").hidden = false;
+        speak(w.wordEn);
+      });
+      const grade = (isCorrect) => {
+        upsertVocabSRS(s.id, w.vocabId, w.wordEn, w.wordAr, isCorrect).catch(console.error);
+        i++; draw();
+      };
+      document.getElementById("vsrs-knew")?.addEventListener("click", () => grade(true));
+      document.getElementById("vsrs-forgot")?.addEventListener("click", () => grade(false));
+    }
+    draw();
+  } catch (err) { content.innerHTML = `<div class="empty">تعذر تحميل المراجعة</div>`; console.error(err); }
+}
+
+/* ---------------------- Feature: speaking / pronunciation practice (DB-backed) ----------------------
+   Uses the browser's SpeechRecognition API (Chrome-only — Safari/iOS and
+   Firefox don't support it, so we show a plain message there instead of a
+   broken button). The student reads an English prompt aloud, the browser
+   transcribes what it heard, and we score it against the target text by
+   word overlap. Prompts come from SpeakingPrompts (grade-specific, teacher-
+   authored); every attempt is logged to SpeakingAttempts for progress. */
+function scoreTranscript(target, heard) {
+  const norm = (t) => (t || "").toLowerCase().replace(/[^\w\s']/g, "").split(/\s+/).filter(Boolean);
+  const targetWords = norm(target);
+  const heardWords = new Set(norm(heard));
+  if (!targetWords.length) return 0;
+  const matched = targetWords.filter((w) => heardWords.has(w)).length;
+  return Math.round((matched / targetWords.length) * 100);
+}
+async function openSpeakingPractice(s) {
+  const overlay = document.getElementById("report-overlay");
+  const content = document.getElementById("report-content");
+  overlay.hidden = false;
+  content.innerHTML = `<div class="spinner"></div>`;
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  try {
+    const prompts = await Sheet.list("SpeakingPrompts", { filter: (r) => r.grade === s.grade || r.grade === "all" });
+    if (!prompts.length) {
+      content.innerHTML = `
+        <div class="report-head">
+          <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+          <button class="btn-ghost" id="report-close" style="width:auto;padding:6px 14px;">إغلاق</button>
+        </div>
+        <div class="report-title heading">تمرين النطق</div>
+        <div class="empty">لسه مفيش جمل نطق مضافة لصفك الدراسي</div>`;
+      document.getElementById("report-close").addEventListener("click", () => { overlay.hidden = true; });
+      return;
+    }
+    let i = 0;
+    function draw() {
+      const p = prompts[i];
+      content.innerHTML = `
+        <div class="report-head">
+          <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+          <button class="btn-ghost" id="report-close" style="width:auto;padding:6px 14px;">إغلاق</button>
+        </div>
+        <div class="report-title heading">تمرين النطق</div>
+        <div class="report-sub">${i + 1} / ${prompts.length}</div>
+        <div style="text-align:center;padding:20px 10px;" dir="ltr">
+          <div class="heading" style="font-size:19px;">${escapeHtml(p.text)}</div>
+        </div>
+        ${SpeechRecognitionCtor ? `
+          <button class="btn-primary" id="sp-record">${svgIcon(ICONS.audio)} ابدأ النطق</button>
+          <div id="sp-result" style="margin-top:14px;"></div>
+        ` : `<div class="hint-msg">تمرين النطق بيشتغل بس على متصفح Chrome حاليًا</div>`}
+        <button class="btn-ghost" id="sp-next" style="margin-top:14px;">السؤال التالي</button>`;
+      document.getElementById("report-close").addEventListener("click", () => { overlay.hidden = true; });
+      document.getElementById("sp-next").addEventListener("click", () => { i = (i + 1) % prompts.length; draw(); });
+      const recordBtn = document.getElementById("sp-record");
+      if (recordBtn && SpeechRecognitionCtor) {
+        recordBtn.addEventListener("click", () => {
+          const recog = new SpeechRecognitionCtor();
+          recog.lang = "en-US";
+          recog.interimResults = false;
+          recordBtn.textContent = "جاري الاستماع...";
+          recordBtn.disabled = true;
+          recog.onresult = (e) => {
+            const heard = e.results[0][0].transcript;
+            const score = scoreTranscript(p.text, heard);
+            document.getElementById("sp-result").innerHTML = `
+              <div class="report-list-item"><span>سمعت:</span><span>${escapeHtml(heard)}</span></div>
+              <div class="report-list-item"><span>نسبة التطابق</span><span style="color:${score >= 70 ? "var(--mint)" : "var(--rose)"};">${score}%</span></div>`;
+            Sheet.create("SpeakingAttempts", { id: `sp_${Date.now()}`, studentId: s.id, promptId: p.id, transcript: heard, score, date: new Date().toISOString() }).catch(console.error);
+            if (score >= 70) XP.add(s.id, 5);
+          };
+          recog.onerror = () => toast("تعذر التعرف على الصوت، حاول تاني");
+          recog.onend = () => { recordBtn.textContent = `${svgIcon(ICONS.audio)} ابدأ النطق`; recordBtn.disabled = false; };
+          recog.start();
+        });
+      }
+    }
+    draw();
+  } catch (err) { content.innerHTML = `<div class="empty">تعذر تحميل تمرين النطق</div>`; console.error(err); }
+}
+
+/* ---------------------- Feature: vocab matching game (DB-backed high scores) ----------------------
+   Reuses the same word bank source as لوحة الكلمات (words the student has
+   already been تسميع-tested on) for a quick memory-match game; best runs
+   are logged to GameScores so progress carries between visits. */
+async function openWordGame(s) {
+  const overlay = document.getElementById("report-overlay");
+  const content = document.getElementById("report-content");
+  overlay.hidden = false;
+  content.innerHTML = `<div class="spinner"></div>`;
+  try {
+    const attempts = await Sheet.list("VocabAttempts", { filter: (r) => r.studentId === s.id });
+    const vocabIds = new Set(attempts.map((a) => a.vocabId));
+    const vocabRows = vocabIds.size ? await Sheet.list("Vocab", { filter: (r) => vocabIds.has(r.id) }) : [];
+    const pool = vocabRows.slice(0, 6); // 6 pairs = 12 cards, keeps the board readable on mobile
+    if (pool.length < 3) {
+      content.innerHTML = `
+        <div class="report-head">
+          <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+          <button class="btn-ghost" id="report-close" style="width:auto;padding:6px 14px;">إغلاق</button>
+        </div>
+        <div class="report-title heading">لعبة الكلمات</div>
+        <div class="empty">لازم تعمل تسميع كلمات الأول عشان يبقى عندك كلمات كفاية للعبة (٣ كلمات على الأقل)</div>`;
+      document.getElementById("report-close").addEventListener("click", () => { overlay.hidden = true; });
+      return;
+    }
+    let cards = pool.flatMap((v) => [
+      { key: v.id, side: "en", text: v.wordEn },
+      { key: v.id, side: "ar", text: v.wordAr },
+    ]);
+    cards = cards.map((c) => ({ ...c, sort: Math.random() })).sort((a, b) => a.sort - b.sort);
+    let first = null, moves = 0, matched = 0;
+    const startedAt = Date.now();
+    function draw() {
+      content.innerHTML = `
+        <div class="report-head">
+          <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+          <button class="btn-ghost" id="report-close" style="width:auto;padding:6px 14px;">إغلاق</button>
+        </div>
+        <div class="report-title heading">لعبة الكلمات</div>
+        <div class="report-sub">حركات: ${moves}</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+          ${cards.map((c, idx) => `
+            <button class="btn-ghost game-card" data-idx="${idx}" data-key="${c.key}" style="min-height:60px;font-size:12.5px;${c.matched ? "opacity:.35;pointer-events:none;" : ""}${c.flipped ? "border-color:var(--blue);" : ""}">
+              ${c.flipped || c.matched ? escapeHtml(c.text) : "؟"}
+            </button>`).join("")}
+        </div>`;
+      document.getElementById("report-close").addEventListener("click", () => { overlay.hidden = true; });
+      content.querySelectorAll(".game-card").forEach((btn) =>
+        btn.addEventListener("click", () => {
+          const idx = Number(btn.dataset.idx);
+          const card = cards[idx];
+          if (card.flipped || card.matched || first?.idx === idx) return;
+          card.flipped = true;
+          if (!first) { first = { idx, card }; draw(); return; }
+          moves++;
+          if (first.card.key === card.key) {
+            card.matched = true; first.card.matched = true; matched++;
+            first = null; draw();
+            if (matched === pool.length) {
+              const timeSeconds = Math.round((Date.now() - startedAt) / 1000);
+              Sheet.create("GameScores", { id: `gm_${Date.now()}`, studentId: s.id, moves, timeSeconds, date: new Date().toISOString() }).catch(console.error);
+              XP.add(s.id, 8);
+              setTimeout(() => {
+                content.innerHTML += `<div class="empty">🎉 خلصت اللعبة في ${moves} حركة و${timeSeconds} ثانية!</div>`;
+              }, 300);
+            }
+          } else {
+            draw();
+            setTimeout(() => { card.flipped = false; first.card.flipped = false; first = null; draw(); }, 700);
+          }
+        })
+      );
+    }
+    draw();
+  } catch (err) { content.innerHTML = `<div class="empty">تعذر تحميل اللعبة</div>`; console.error(err); }
+}
+
 /* ---------------------- Feature: printable course-completion certificate ---------------------- */
 function openCourseCertificate(s, course) {
   const overlay = document.getElementById("report-overlay");
@@ -1233,15 +1642,21 @@ async function renderCourse(courseId, course) {
           <button class="icon-btn bookmark-btn ${bookmarked ? "active" : ""}" data-lid="${l.id}" data-title="${l.title}" data-course="${courseId}">
             ${svgIcon('<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>')}
           </button>
+          <button class="icon-btn share-lecture-btn" data-lecid="${l.id}" data-title="${escapeHtml(l.title)}" title="مشاركة الرابط">
+            ${svgIcon('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>')}
+          </button>
         </div>
       </div>`;
     }).join("");
     wrap.querySelectorAll(".path-node").forEach((node) =>
       node.addEventListener("click", (e) => {
-        if (e.target.closest(".bookmark-btn")) return;
+        if (e.target.closest(".bookmark-btn") || e.target.closest(".share-lecture-btn")) return;
         pushNav(renderCourse, [courseId, course]);
         renderLectureTasks(node.dataset.id, lectures.find((l) => l.id === node.dataset.id));
       })
+    );
+    wrap.querySelectorAll(".share-lecture-btn").forEach((btn) =>
+      btn.addEventListener("click", (e) => { e.stopPropagation(); shareLink("lecture", btn.dataset.lecid, btn.dataset.title); })
     );
     wrap.querySelectorAll(".bookmark-btn").forEach((btn) =>
       btn.addEventListener("click", (e) => {
@@ -1441,6 +1856,7 @@ function renderTask(t) {
     if (!wasDone) {
       XP.add(s.id, 10);
       if (t.type === "text" && Counters.inc(s.id, "textRead") >= 5) Badges.award(s.id, "bookworm");
+      Sheet.create("TaskCompletions", { id: `tc_${Date.now()}`, studentId: s.id, taskId: t.id, taskType: t.type, date: new Date().toISOString() }).catch(console.error);
     }
   }
   const video = document.getElementById("task-video");
@@ -1531,6 +1947,7 @@ async function renderQuiz(t) {
     quizActive = false;
     const s = Session.get();
     Sheet.create("Scores", { id: `sc_${Date.now()}`, studentId: s.id, refId: t.id, refType: "quiz", score, total: questions.length, date: new Date().toISOString() }).catch(console.error);
+    Sheet.create("TaskCompletions", { id: `tc_${Date.now()}`, studentId: s.id, taskId: t.id, taskType: "quiz", date: new Date().toISOString() }).catch(console.error);
     XP.add(s.id, score * 5);
     if (questions.length && score === questions.length) Badges.award(s.id, "perfect_quiz");
     if (Counters.inc(s.id, "quizzesDone") >= 10) Badges.award(s.id, "quiz_master");
@@ -1560,6 +1977,8 @@ async function renderQuiz(t) {
       btn.addEventListener("click", () => {
         const correct = btn.dataset.o === q.correctAnswer;
         if (correct) score++;
+        const sNow = Session.get();
+        Sheet.create("QuizAttempts", { id: `qa_${Date.now()}_${i}`, studentId: sNow.id, taskId: t.id, questionId: q.id, questionText: q.question, selectedAnswer: btn.dataset.o, correctAnswer: q.correctAnswer, correct: correct ? "true" : "false", date: new Date().toISOString() }).catch(console.error);
         el.querySelectorAll(".quiz-opt").forEach((b) => {
           if (b.dataset.o === q.correctAnswer) b.classList.add("correct");
           else if (b === btn) b.classList.add("wrong");
@@ -1584,6 +2003,7 @@ async function renderVocab(lectureId) {
     if (i >= words.length) {
       const s = Session.get();
       Sheet.create("Scores", { id: `sc_${Date.now()}`, studentId: s.id, refId: lectureId, refType: "vocab", score: correct, total: words.length, date: new Date().toISOString() }).catch(console.error);
+      Sheet.create("TaskCompletions", { id: `tc_${Date.now()}`, studentId: s.id, taskId: lectureId, taskType: "vocab", date: new Date().toISOString() }).catch(console.error);
       XP.add(s.id, correct * 2);
       el.innerHTML = `<div dir="rtl" style="text-align:center;padding:40px 10px;">
         <h2 class="heading">نتيجة التسميع</h2>
@@ -1608,6 +2028,7 @@ async function renderVocab(lectureId) {
       if (isCorrect) correct++; else wrong++;
       const s = Session.get();
       Sheet.create("VocabAttempts", { id: `va_${Date.now()}_${i}`, studentId: s.id, vocabId: w.id, wordEn: w.wordEn, correct: isCorrect ? "true" : "false", date: new Date().toISOString() }).catch(console.error);
+      upsertVocabSRS(s.id, w.id, w.wordEn, w.wordAr, isCorrect).catch(console.error);
       i++; draw();
     });
     speak(w.wordEn);
@@ -1683,6 +2104,7 @@ async function renderForum() {
               <span>${Number(p.likes) || 0}</span>
             </button>
             <button class="icon-btn reply-toggle" data-id="${p.id}">${svgIcon('<path d="M21 15a4 4 0 0 1-4 4H8l-5 3V6a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>')} الردود</button>
+            <button class="icon-btn share-post-btn" data-postid="${p.id}" data-title="${escapeHtml(stripHtml(p.text || "").slice(0, 60))}">${svgIcon('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>')} مشاركة</button>
           </div>
           <div class="replies-wrap" id="replies-${p.id}" hidden></div>
         </div>`;
@@ -1701,6 +2123,9 @@ async function renderForum() {
       );
       wrap.querySelectorAll(".reply-toggle").forEach((btn) =>
         btn.addEventListener("click", () => toggleReplies(s, btn.dataset.id))
+      );
+      wrap.querySelectorAll(".share-post-btn").forEach((btn) =>
+        btn.addEventListener("click", () => shareLink("post", btn.dataset.postid, btn.dataset.title))
       );
     }
     draw(posts);
@@ -2155,7 +2580,44 @@ function enterApp() {
     document.getElementById("view-app").hidden = false;
     Streak.touch(s.id);
     renderHome();
+    handleDeepLink(s);
   }
+}
+
+// Reads a shared #course=/#lecture=/#file=/#post= link (see shareLink above)
+// and jumps straight to that screen once the student is logged in. Runs
+// after renderHome() so there's always a normal Home underneath to land on
+// if the linked item can't be found (deleted, wrong grade, etc.).
+async function handleDeepLink(s) {
+  const hash = location.hash.replace(/^#/, "");
+  const [type, id] = hash.split("=");
+  if (!type || !id) return;
+  try {
+    if (type === "course") {
+      const rows = await Sheet.list("Courses", { filter: (r) => r.id === id });
+      if (rows.length) renderCourse(id, rows[0]); else toast("الكورس غير موجود أو تم حذفه");
+    } else if (type === "lecture") {
+      const lecRows = await Sheet.list("Lectures", { filter: (r) => r.id === id });
+      if (!lecRows.length) { toast("المحاضرة غير موجودة أو تم حذفها"); return; }
+      const courseRows = await Sheet.list("Courses", { filter: (r) => r.id === lecRows[0].courseId });
+      pushNav(renderHome, []);
+      renderLectureTasks(id, lecRows[0]);
+      if (courseRows.length) pushNav(renderCourse, [lecRows[0].courseId, courseRows[0]]);
+    } else if (type === "file") {
+      const fileRows = await Sheet.list("TeacherFiles", { filter: (r) => r.id === id });
+      if (fileRows.length) openTeacherFiles(s.grade);
+      else toast("الملف غير موجود أو تم حذفه");
+    } else if (type === "post") {
+      renderForum();
+      setTimeout(() => {
+        const btn = document.querySelector(`.share-post-btn[data-postid="${id}"]`);
+        const card = btn?.closest(".post");
+        if (card) { card.scrollIntoView({ behavior: "smooth", block: "center" }); card.style.outline = "2px solid var(--blue)"; }
+        else toast("المنشور غير موجود أو تم حذفه");
+      }, 600);
+    }
+  } catch (err) { console.error(err); }
+  history.replaceState(null, "", location.pathname + location.search); // consume the hash so back/refresh doesn't re-trigger it
 }
 
 document.getElementById("btn-parent-logout").addEventListener("click", () => { Session.clear(); location.reload(); });
