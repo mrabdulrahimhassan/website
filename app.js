@@ -852,6 +852,22 @@ async function renderHome() {
           ${svgIcon('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>')}
           <span>لعبة الكلمات</span>
         </button>
+        <button class="quick-link" id="ql-teachernotes">
+          ${svgIcon('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>')}
+          <span>ملاحظات المستر</span>
+        </button>
+        <button class="quick-link" id="ql-reading">
+          ${svgIcon('<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>')}
+          <span>قطع القراءة</span>
+        </button>
+        <button class="quick-link" id="ql-grammar">
+          ${svgIcon('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h7M9 11h5"/>')}
+          <span>قواعد اللغة</span>
+        </button>
+        <button class="quick-link" id="ql-myquestions">
+          ${svgIcon('<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"/><path d="M12 17h.01"/>')}
+          <span>أسئلتي للمستر</span>
+        </button>
       </div>
 
       <div class="section-title"><h3>هدفي الأسبوعي</h3></div>
@@ -879,6 +895,10 @@ async function renderHome() {
   document.getElementById("ql-vocabreview").addEventListener("click", () => openVocabReview(s));
   document.getElementById("ql-speaking").addEventListener("click", () => openSpeakingPractice(s));
   document.getElementById("ql-wordgame").addEventListener("click", () => openWordGame(s));
+  document.getElementById("ql-teachernotes").addEventListener("click", () => openTeacherNotes(s));
+  document.getElementById("ql-reading").addEventListener("click", () => openReadingList(s));
+  document.getElementById("ql-grammar").addEventListener("click", () => openGrammarBank(s));
+  document.getElementById("ql-myquestions").addEventListener("click", () => openMyQuestions(s));
   refreshNotifBadge(s);
   renderWeeklyGoalCard(s);
   try {
@@ -1445,6 +1465,12 @@ async function openSpeakingPractice(s) {
       return;
     }
     let i = 0;
+    // getUserMedia/SpeechRecognition only work in a "secure context" (HTTPS,
+    // or localhost) — on a plain-http page the mic button would look fine
+    // but silently fail (or show the browser's own mic-blocked indicator,
+    // usually a small colored icon in the address bar — that part is native
+    // browser chrome, not something a page's code can change or remove).
+    const isSecureCtx = window.isSecureContext !== false;
     function draw() {
       const p = prompts[i];
       content.innerHTML = `
@@ -1457,21 +1483,24 @@ async function openSpeakingPractice(s) {
         <div style="text-align:center;padding:20px 10px;" dir="ltr">
           <div class="heading" style="font-size:19px;">${escapeHtml(p.text)}</div>
         </div>
-        ${SpeechRecognitionCtor ? `
+        ${SpeechRecognitionCtor && isSecureCtx ? `
           <button class="btn-primary" id="sp-record">${svgIcon(ICONS.audio)} ابدأ النطق</button>
           <div id="sp-result" style="margin-top:14px;"></div>
-        ` : `<div class="hint-msg">تمرين النطق بيشتغل بس على متصفح Chrome حاليًا</div>`}
+        ` : SpeechRecognitionCtor ? `<div class="hint-msg">تمرين النطق محتاج اتصال آمن (HTTPS) عشان يقدر يستخدم الميكروفون</div>`
+          : `<div class="hint-msg">تمرين النطق بيشتغل بس على متصفح Chrome حاليًا</div>`}
         <button class="btn-ghost" id="sp-next" style="margin-top:14px;">السؤال التالي</button>`;
       document.getElementById("report-close").addEventListener("click", () => { overlay.hidden = true; });
       document.getElementById("sp-next").addEventListener("click", () => { i = (i + 1) % prompts.length; draw(); });
       const recordBtn = document.getElementById("sp-record");
       if (recordBtn && SpeechRecognitionCtor) {
+        const idleHtml = `${svgIcon(ICONS.audio)} ابدأ النطق`;
         recordBtn.addEventListener("click", () => {
           const recog = new SpeechRecognitionCtor();
           recog.lang = "en-US";
           recog.interimResults = false;
           recordBtn.textContent = "جاري الاستماع...";
           recordBtn.disabled = true;
+          document.getElementById("sp-result").innerHTML = "";
           recog.onresult = (e) => {
             const heard = e.results[0][0].transcript;
             const score = scoreTranscript(p.text, heard);
@@ -1481,9 +1510,19 @@ async function openSpeakingPractice(s) {
             Sheet.create("SpeakingAttempts", { id: `sp_${Date.now()}`, studentId: s.id, promptId: p.id, transcript: heard, score, date: new Date().toISOString() }).catch(console.error);
             if (score >= 70) XP.add(s.id, 5);
           };
-          recog.onerror = () => toast("تعذر التعرف على الصوت، حاول تاني");
-          recog.onend = () => { recordBtn.textContent = `${svgIcon(ICONS.audio)} ابدأ النطق`; recordBtn.disabled = false; };
-          recog.start();
+          recog.onerror = (e) => {
+            const messages = {
+              "not-allowed": "لازم تسمح باستخدام الميكروفون عشان تقدر تستخدم تمرين النطق",
+              "service-not-allowed": "لازم تسمح باستخدام الميكروفون عشان تقدر تستخدم تمرين النطق",
+              "no-speech": "معملتش أي صوت، جرّب تاني وقرب من الميكروفون",
+              "audio-capture": "مفيش ميكروفون متاح على الجهاز ده",
+              network: "تعذر الاتصال بخدمة التعرف على الصوت، تأكد من اتصالك بالإنترنت",
+            };
+            toast(messages[e.error] || "تعذر التعرف على الصوت، حاول تاني");
+          };
+          recog.onend = () => { recordBtn.innerHTML = idleHtml; recordBtn.disabled = false; };
+          try { recog.start(); }
+          catch (err) { console.error(err); toast("تعذر بدء التسجيل، حدّث الصفحة وحاول تاني"); recordBtn.innerHTML = idleHtml; recordBtn.disabled = false; }
         });
       }
     }
@@ -1566,6 +1605,213 @@ async function openWordGame(s) {
     }
     draw();
   } catch (err) { content.innerHTML = `<div class="empty">تعذر تحميل اللعبة</div>`; console.error(err); }
+}
+
+/* ---------------------- Feature: teacher's private notes to a student (DB-backed) ----------------------
+   Written by the teacher from teacher-admin.html's student detail view;
+   this is a read-only feed for the student. */
+async function openTeacherNotes(s) {
+  const overlay = document.getElementById("report-overlay");
+  const content = document.getElementById("report-content");
+  overlay.hidden = false;
+  content.innerHTML = `<div class="spinner"></div>`;
+  try {
+    const notes = (await Sheet.list("TeacherNotes", { filter: (r) => r.studentId === s.id })).sort((a, b) => new Date(b.date) - new Date(a.date));
+    content.innerHTML = `
+      <div class="report-head">
+        <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+        <button class="btn-ghost" id="report-close" style="width:auto;padding:6px 14px;">إغلاق</button>
+      </div>
+      <div class="report-title heading">ملاحظات المستر</div>
+      ${notes.length ? notes.map((n) => `
+        <div class="path-card" style="margin-bottom:10px;">
+          <div class="sub">${linkify(n.note || "", true)}</div>
+          <div class="sub" style="margin-top:6px;font-size:11px;color:var(--ink-soft);">${n.date ? new Date(n.date).toLocaleString("ar-EG") : ""}</div>
+        </div>`).join("")
+        : `<div class="empty">لسه مفيش ملاحظات من المستر</div>`}`;
+    document.getElementById("report-close").addEventListener("click", () => { overlay.hidden = true; });
+  } catch (err) { content.innerHTML = `<div class="empty">تعذر تحميل الملاحظات</div>`; console.error(err); }
+}
+
+/* ---------------------- Feature: reading comprehension passages (DB-backed) ----------------------
+   Teacher writes passages + MCQ questions per grade from teacher-admin.html;
+   scored attempts are logged to ReadingAttempts, same spirit as quizzes. */
+async function openReadingList(s) {
+  const overlay = document.getElementById("report-overlay");
+  const content = document.getElementById("report-content");
+  overlay.hidden = false;
+  content.innerHTML = `<div class="spinner"></div>`;
+  try {
+    const passages = await Sheet.list("ReadingPassages", { filter: (r) => r.grade === s.grade || r.grade === "all" });
+    content.innerHTML = `
+      <div class="report-head">
+        <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+        <button class="btn-ghost" id="report-close" style="width:auto;padding:6px 14px;">إغلاق</button>
+      </div>
+      <div class="report-title heading">قطع القراءة</div>
+      ${passages.length ? passages.map((p) => `<div class="path-card" data-id="${p.id}"><div class="title">${escapeHtml(p.title || "")}</div></div>`).join("")
+        : `<div class="empty">لسه مفيش قطع قراءة لصفك الدراسي</div>`}`;
+    document.getElementById("report-close").addEventListener("click", () => { overlay.hidden = true; });
+    content.querySelectorAll(".path-card[data-id]").forEach((card) =>
+      card.addEventListener("click", () => openReadingPassage(s, passages.find((p) => p.id === card.dataset.id)))
+    );
+  } catch (err) { content.innerHTML = `<div class="empty">تعذر تحميل قطع القراءة</div>`; console.error(err); }
+}
+async function openReadingPassage(s, passage) {
+  const content = document.getElementById("report-content");
+  content.innerHTML = `<div class="spinner"></div>`;
+  try {
+    const questions = await Sheet.list("ReadingQuestions", { filter: (r) => r.passageId === passage.id });
+    content.innerHTML = `
+      <div class="report-head">
+        <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+        <button class="btn-ghost" id="report-close" style="width:auto;padding:6px 14px;">إغلاق</button>
+      </div>
+      <div class="report-title heading">${escapeHtml(passage.title || "")}</div>
+      <div class="sub" dir="ltr" style="text-align:left;line-height:1.8;margin-bottom:16px;">${escapeHtml(passage.text || "")}</div>
+      <button class="btn-primary" id="reading-start">ابدأ الأسئلة (${questions.length})</button>`;
+    document.getElementById("report-close").addEventListener("click", () => { document.getElementById("report-overlay").hidden = true; });
+    document.getElementById("reading-start").addEventListener("click", () => runReadingQuiz(s, passage, questions));
+  } catch (err) { content.innerHTML = `<div class="empty">تعذر تحميل القطعة</div>`; console.error(err); }
+}
+function runReadingQuiz(s, passage, questions) {
+  const content = document.getElementById("report-content");
+  if (!questions.length) { toast("لا توجد أسئلة لهذه القطعة"); return; }
+  let i = 0, score = 0;
+  function draw() {
+    const q = questions[i];
+    const opts = safeJsonParseLocal(q.optionsJson, []);
+    content.innerHTML = `
+      <div class="report-head">
+        <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+        <button class="btn-ghost" id="report-close" style="width:auto;padding:6px 14px;">إغلاق</button>
+      </div>
+      <div class="quiz-progress"><div style="width:${(i / questions.length) * 100}%"></div></div>
+      <div class="heading" style="margin:14px 0;">${escapeHtml(q.question || "")}</div>
+      ${opts.map((o) => `<button class="quiz-opt" data-o="${escapeHtml(o)}">${escapeHtml(o)}</button>`).join("")}`;
+    document.getElementById("report-close").addEventListener("click", () => { document.getElementById("report-overlay").hidden = true; });
+    content.querySelectorAll(".quiz-opt").forEach((btn) =>
+      btn.addEventListener("click", () => {
+        const correct = btn.dataset.o === q.correctAnswer;
+        if (correct) score++;
+        content.querySelectorAll(".quiz-opt").forEach((b) => {
+          if (b.dataset.o === q.correctAnswer) b.classList.add("correct");
+          else if (b === btn) b.classList.add("wrong");
+          b.disabled = true;
+        });
+        setTimeout(() => { i++; i < questions.length ? draw() : finishReading(); }, 700);
+      })
+    );
+  }
+  function finishReading() {
+    Sheet.create("ReadingAttempts", { id: `ra_${Date.now()}`, studentId: s.id, passageId: passage.id, score, total: questions.length, date: new Date().toISOString() }).catch(console.error);
+    XP.add(s.id, score * 4);
+    content.innerHTML = `
+      <div class="report-head">
+        <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+      </div>
+      <div style="text-align:center;padding:20px;">
+        <div class="heading" style="font-size:24px;">${score} / ${questions.length}</div>
+        <div class="sub" style="margin-top:8px;">نتيجتك في أسئلة القطعة</div>
+        <button class="btn-primary" id="reading-done" style="margin-top:20px;">تم</button>
+      </div>`;
+    document.getElementById("reading-done").addEventListener("click", () => { document.getElementById("report-overlay").hidden = true; });
+  }
+  draw();
+}
+function safeJsonParseLocal(str, fallback) { try { const v = JSON.parse(str); return v || fallback; } catch { return fallback; } }
+
+/* ---------------------- Feature: grammar notes bank (DB-backed) ---------------------- */
+async function openGrammarBank(s) {
+  const overlay = document.getElementById("report-overlay");
+  const content = document.getElementById("report-content");
+  overlay.hidden = false;
+  content.innerHTML = `<div class="spinner"></div>`;
+  try {
+    const notes = await Sheet.list("GrammarNotes", { filter: (r) => r.grade === s.grade || r.grade === "all" });
+    content.innerHTML = `
+      <div class="report-head">
+        <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+        <button class="btn-ghost" id="report-close" style="width:auto;padding:6px 14px;">إغلاق</button>
+      </div>
+      <div class="report-title heading">قواعد اللغة</div>
+      <div class="search-box"><input id="grammar-search" type="text" placeholder="ابحث في القواعد..."></div>
+      <div id="grammar-list"></div>`;
+    document.getElementById("report-close").addEventListener("click", () => { overlay.hidden = true; });
+    function draw(list) {
+      const wrap = document.getElementById("grammar-list");
+      wrap.innerHTML = list.length ? list.map((g, idx) => `
+        <div class="path-card" data-i="${idx}">
+          <div class="title">${escapeHtml(g.title || "")}</div>
+          <div class="sub grammar-body" hidden style="margin-top:8px;line-height:1.7;">
+            ${linkify(g.explanation || "")}
+            ${g.examples ? `<div style="margin-top:8px;font-style:italic;color:var(--ink-soft);">${escapeHtml(g.examples)}</div>` : ""}
+          </div>
+        </div>`).join("") : `<div class="empty">لا توجد نتائج</div>`;
+      wrap.querySelectorAll(".path-card").forEach((card) =>
+        card.addEventListener("click", () => { const b = card.querySelector(".grammar-body"); b.hidden = !b.hidden; })
+      );
+    }
+    draw(notes);
+    document.getElementById("grammar-search").addEventListener("input", (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      draw(notes.filter((g) => (g.title || "").toLowerCase().includes(q) || (g.explanation || "").toLowerCase().includes(q)));
+    });
+  } catch (err) { content.innerHTML = `<div class="empty">تعذر تحميل القواعد</div>`; console.error(err); }
+}
+
+/* ---------------------- Feature: ask the teacher about a specific task (DB-backed) ----------------------
+   openAskTeacherModal is called from the "اسأل المستر" button added inside
+   renderTask() below; openMyQuestions shows the student's own questions and
+   the teacher's answers once given (from teacher-admin.html). */
+async function openAskTeacherModal(s, t) {
+  const overlay = document.getElementById("report-overlay");
+  const content = document.getElementById("report-content");
+  overlay.hidden = false;
+  content.innerHTML = `
+    <div class="report-head">
+      <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+      <button class="btn-ghost" id="report-close" style="width:auto;padding:6px 14px;">إغلاق</button>
+    </div>
+    <div class="report-title heading">اسأل المستر عن: ${escapeHtml(t.title || "")}</div>
+    <div class="compose">
+      <textarea id="ask-text" placeholder="اكتب سؤالك عن المهمة دي..." maxlength="500"></textarea>
+    </div>
+    <button class="btn-primary" id="ask-submit" style="margin-top:10px;">إرسال السؤال</button>`;
+  document.getElementById("report-close").addEventListener("click", () => { overlay.hidden = true; });
+  document.getElementById("ask-submit").addEventListener("click", async () => {
+    const question = document.getElementById("ask-text").value.trim();
+    if (!question) return toast("اكتب سؤالك الأول");
+    try {
+      await Sheet.create("TaskQuestions", { id: `tq_${Date.now()}`, studentId: s.id, studentName: s.fullName, taskId: t.id, taskTitle: t.title, question, answer: "", date: new Date().toISOString() });
+      toast("تم إرسال سؤالك للمستر");
+      overlay.hidden = true;
+    } catch { toast("تعذر إرسال السؤال"); }
+  });
+}
+async function openMyQuestions(s) {
+  const overlay = document.getElementById("report-overlay");
+  const content = document.getElementById("report-content");
+  overlay.hidden = false;
+  content.innerHTML = `<div class="spinner"></div>`;
+  try {
+    const questions = (await Sheet.list("TaskQuestions", { filter: (r) => r.studentId === s.id })).sort((a, b) => new Date(b.date) - new Date(a.date));
+    content.innerHTML = `
+      <div class="report-head">
+        <img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
+        <button class="btn-ghost" id="report-close" style="width:auto;padding:6px 14px;">إغلاق</button>
+      </div>
+      <div class="report-title heading">أسئلتي للمستر</div>
+      ${questions.length ? questions.map((q) => `
+        <div class="path-card" style="margin-bottom:10px;">
+          <div class="sub" style="font-size:11px;color:var(--ink-soft);">${escapeHtml(q.taskTitle || "")}</div>
+          <div class="title" style="margin-top:4px;">${escapeHtml(q.question || "")}</div>
+          ${q.answer ? `<div class="sub" style="margin-top:8px;color:var(--mint);"><b>رد المستر:</b> ${linkify(q.answer, true)}</div>`
+            : `<div class="sub" style="margin-top:8px;color:var(--ink-soft);">بانتظار رد المستر...</div>`}
+        </div>`).join("")
+        : `<div class="empty">لسه معملتش أي سؤال — اضغط "اسأل المستر" من داخل أي مهمة</div>`}`;
+    document.getElementById("report-close").addEventListener("click", () => { overlay.hidden = true; });
+  } catch (err) { content.innerHTML = `<div class="empty">تعذر تحميل أسئلتك</div>`; console.error(err); }
 }
 
 /* ---------------------- Feature: printable course-completion certificate ---------------------- */
@@ -1808,9 +2054,13 @@ function renderTask(t) {
       <div class="text-block" id="text-content" style="font-size:${savedSize}%;">${content}</div>`;
   }
   el.innerHTML = `
-    <button class="btn-ghost" id="back-task" style="width:auto;padding:8px 16px;margin-bottom:10px;" dir="rtl">← رجوع</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;" dir="rtl">
+      <button class="btn-ghost" id="back-task" style="width:auto;padding:8px 16px;">← رجوع</button>
+      <button class="icon-btn" id="btn-ask-teacher">${svgIcon('<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"/><path d="M12 17h.01"/>')} اسأل المستر</button>
+    </div>
     <h2>${t.title}</h2>${body}`;
   document.getElementById("back-task").addEventListener("click", () => { if ("speechSynthesis" in window) speechSynthesis.cancel(); goBack(); });
+  document.getElementById("btn-ask-teacher").addEventListener("click", () => openAskTeacherModal(s, t));
   const dlBtn = document.getElementById("pdf-dl");
   if (dlBtn) dlBtn.addEventListener("click", () => forceDownload(dlBtn.dataset.url, `${dlBtn.dataset.name}.pdf`));
   const readBtn = document.getElementById("btn-read-aloud");
