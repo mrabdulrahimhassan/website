@@ -120,6 +120,15 @@ const CONFIG = {
   sheetsonApiKey: "HlUZiTjLO1sp-Ou0JbsluuQNAWUoMP2XOYcVw5n6OxoroGNPfVpIDZq3fF0",
   imgbbKey: "36b0e2658ed6fad2ca48081442f1539b",
   proxycheckKey: "", // optional — a free proxycheck.io key raises the daily query limit; works without one too
+  // Sign in with Google needs a real OAuth Client ID from a Google Cloud
+  // project the site owner controls — I can't generate a working one myself.
+  // To get one: Google Cloud Console → APIs & Services → Credentials →
+  // Create Credentials → OAuth client ID → Application type "Web application"
+  // → add the exact domain this site is hosted on under "Authorized
+  // JavaScript origins" (e.g. https://yourdomain.com, no trailing slash) →
+  // paste the Client ID string below. Left empty, the Google button simply
+  // stays hidden instead of rendering broken.
+  googleClientId: "355037443320-g3s1413hs3krs1gpj4r1b9ifnigendqr.apps.googleusercontent.com",
 };
 
 const GRADE_LABELS = {
@@ -375,6 +384,7 @@ function applyAuthPanels() {
   document.getElementById("forgot-form").hidden = true;
   document.getElementById("center-code-step").hidden = true;
   document.getElementById("center-complete-form").hidden = true;
+  document.getElementById("google-signin-wrap").hidden = !(role === "student" && CONFIG.googleClientId);
 }
 
 // Username: force lowercase English, strip spaces, live as the student types
@@ -382,6 +392,57 @@ function applyAuthPanels() {
   const el = document.getElementById(id);
   if (el) el.addEventListener("input", () => { el.value = el.value.toLowerCase().replace(/\s+/g, ""); });
 });
+
+/* ---------------------- Feature: Sign in with Google (student role) ----------------------
+   Uses Google Identity Services (loaded in index.html's <head>) — a purely
+   client-side flow, no backend needed, consistent with how this whole app
+   already talks to Sheetson/imgbb directly from the browser. The ID token
+   Google returns is a signed JWT; we only need the email/name out of it, so
+   we decode the payload locally rather than verifying the signature (this
+   app has no server to verify it against anyway — see the security note at
+   the end of this file for the same tradeoff already made everywhere else).
+   An existing Students row matched by email logs straight in; a new Google
+   user is routed into the normal signup form with their email/name
+   pre-filled, since grade/phone/parentPhone are still required either way. */
+function parseJwt(token) {
+  try {
+    const payload = token.split(".")[1];
+    const json = decodeURIComponent(atob(payload.replace(/-/g, "+").replace(/_/g, "/")).split("").map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")).join(""));
+    return JSON.parse(json);
+  } catch { return null; }
+}
+async function handleGoogleCredential(response) {
+  const payload = parseJwt(response.credential);
+  if (!payload?.email) return showAuthError("تعذر قراءة بيانات حساب Google");
+  showAuthLoading();
+  try {
+    const rows = await Sheet.list("Students", { filter: (r) => (r.email || "").toLowerCase() === payload.email.toLowerCase() });
+    if (rows.length) {
+      const student = rows[0];
+      if (String(student.banned).toLowerCase() === "true") return showBanned();
+      Session.set({ role: "student", id: student.id, fullName: student.fullName, grade: student.grade, phone: student.phone });
+      enterApp();
+    } else {
+      // No account yet — prefill the normal signup form with what Google gave us
+      // and let the student fill in the rest (grade/phone/parentPhone are still required).
+      document.querySelector('#auth-mode-tabs button[data-mode="signup"]').click();
+      document.getElementById("su-email").value = payload.email;
+      document.getElementById("su-email").readOnly = true;
+      if (payload.name && !document.getElementById("su-name").value) document.getElementById("su-name").value = payload.name;
+      if (payload.email && !document.getElementById("su-username").value) {
+        document.getElementById("su-username").value = payload.email.split("@")[0].toLowerCase().replace(/[^a-z0-9_.]/g, "");
+      }
+      toast("كمّل باقي بياناتك عشان تخلّص إنشاء الحساب");
+    }
+  } catch (err) { showAuthError("تعذر الاتصال بالمنصة، تأكد من اتصالك بالإنترنت أو حدّث الصفحة وحاول تاني"); console.error(err); } finally { hideAuthLoading(); }
+}
+if (CONFIG.googleClientId) {
+  window.addEventListener("load", () => {
+    if (!window.google?.accounts?.id) return; // GIS script blocked/failed to load — button just won't appear
+    google.accounts.id.initialize({ client_id: CONFIG.googleClientId, callback: handleGoogleCredential });
+    google.accounts.id.renderButton(document.getElementById("google-signin-btn"), { theme: "outline", size: "large", width: 280, locale: "ar" });
+  });
+}
 
 document.getElementById("auth-role-tabs").addEventListener("click", (e) => {
   const btn = e.target.closest("button"); if (!btn) return;

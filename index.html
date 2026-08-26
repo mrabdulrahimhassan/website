@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Mr. Abdulrahim Hassan">
 <link rel="stylesheet" href="./style.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="no-select" oncontextmenu="return false" ondragstart="return false">
 
@@ -43,6 +44,19 @@
         </div>
 
         <div id="auth-error" class="error-msg" hidden></div>
+
+        <!-- Google sign-in — student role only, both login and signup modes.
+             Hidden entirely unless CONFIG.googleClientId is set in app.js
+             (see the comment there for how to get one); showing a Google
+             button with no real client ID would just render broken. -->
+        <div id="google-signin-wrap" hidden style="margin-bottom:14px;">
+          <div id="google-signin-btn" style="display:flex;justify-content:center;"></div>
+          <div style="display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--ink-soft);font-size:12px;">
+            <div style="flex:1;height:1px;background:var(--panel-line);"></div>
+            أو
+            <div style="flex:1;height:1px;background:var(--panel-line);"></div>
+          </div>
+        </div>
 
         <!-- parent login -->
         <div id="parent-login-form" hidden>
