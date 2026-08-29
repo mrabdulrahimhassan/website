@@ -117,7 +117,12 @@ document.addEventListener("copy", (e) => {
 const CONFIG = {
   sheetsonBase: "https://api.sheetson.com/v2",
   spreadsheetId: "1vMOJsaOnXzvSRIb4nCOvy8HMjQnoAHmbaPGK0rYvbcc",
-  sheetsonApiKey: "HlUZiTjLO1sp-Ou0JbsluuQNAWUoMP2XOYcVw5n6OxoroGNPfVpIDZq3fF0",
+  // Two keys, least-privilege style: reads use the read-only key so a
+  // leaked/scraped read key (this is client-side code, so it's always
+  // technically visible) can never be used to write or delete anything;
+  // only actual writes (create/update/delete) use the read-write key.
+  sheetsonApiKey: "9zwKUSkXy6dcg5gXhhKxVfsPWbXUq1CDR9kNlEbvnJWnjXXiYKSsFCPez38",
+  sheetsonReadOnlyKey: "CPCAbRUvuT3h3Mjv2OOkBO1ll1Fvlo4zrCAqI5fjoWsLeXHMDVglm-XuJxhG0Q",
   imgbbKey: "36b0e2658ed6fad2ca48081442f1539b",
   proxycheckKey: "", // optional — a free proxycheck.io key raises the daily query limit; works without one too
   // Sign in with Google needs a real OAuth Client ID from a Google Cloud
@@ -144,13 +149,18 @@ const GRADE_LABELS = {
    we fetch all rows (paginated) and filter/sort on the client instead —
    this works on every Sheetson plan. ------------------------------- */
 async function sheetsonRequest(path, { method = "GET", query = {}, body } = {}) {
+  // TEMPORARILY disabled — using the read-only key here broke every read in
+  // the app ("تعذر تحميل كل شيء"), so falling back to the interactive key
+  // for both reads and writes until the read-only key is confirmed working
+  // via a direct test (see CONFIG.sheetsonReadOnlyKey below).
+  const key = CONFIG.sheetsonApiKey;
   const url = new URL(`${CONFIG.sheetsonBase}/${path}`);
-  url.searchParams.set("apiKey", CONFIG.sheetsonApiKey);
+  url.searchParams.set("apiKey", key);
   url.searchParams.set("spreadsheetId", CONFIG.spreadsheetId);
   Object.entries(query).forEach(([k, v]) => url.searchParams.set(k, v));
   if (method === "GET") url.searchParams.set("_ts", Date.now()); // cache-bust so edits/deletes show up immediately
   const headers = {
-    Authorization: `Bearer ${CONFIG.sheetsonApiKey}`,
+    Authorization: `Bearer ${key}`,
     "X-Spreadsheet-Id": CONFIG.spreadsheetId,
   };
   if (body) headers["Content-Type"] = "application/json";
@@ -2714,6 +2724,11 @@ async function renderProfile() {
     <div class="text-block" style="margin-bottom:16px;">
       <div>${s.fullName}</div>
       <div style="color:var(--ink-soft);font-size:13px;margin-top:4px;">${GRADE_LABELS[s.grade]}</div>
+      <div id="profile-code-line" style="color:var(--ink-soft);font-size:12px;margin-top:4px;"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:16px;">
+      <div id="wallet-stat" style="flex:1;background:var(--panel);border-radius:12px;padding:12px;text-align:center;"><div class="spinner" style="margin:4px auto;"></div></div>
     </div>
 
     <div class="level-card">
@@ -2779,6 +2794,15 @@ async function renderProfile() {
 
   document.getElementById("btn-weekly-report").addEventListener("click", () => openWeeklyReport(s.id));
   document.getElementById("btn-logout").addEventListener("click", () => { Session.clear(); location.reload(); });
+  // Wallet balance + personal code can change anytime from the teacher's
+  // side, so fetch a fresh copy of this student's row rather than trusting
+  // the cached session for these two fields.
+  Sheet.list("Students", { filter: (r) => r.id === s.id }).then((rows) => {
+    if (!rows.length) return;
+    const fresh = rows[0];
+    document.getElementById("wallet-stat").innerHTML = `<div style="font-size:20px;font-weight:700;color:var(--blue-deep);">${escapeHtml(fresh.walletBalance || "0")}</div><div style="font-size:11px;color:var(--ink-soft);">رصيدك</div>`;
+    if (fresh.code) document.getElementById("profile-code-line").textContent = `كودك: ${fresh.code}`;
+  }).catch((err) => { document.getElementById("wallet-stat").innerHTML = `<div style="font-size:11px;color:var(--ink-soft);">تعذر تحميل الرصيد</div>`; console.error(err); });
   document.getElementById("btn-send-suggestion").addEventListener("click", async () => {
     const text = document.getElementById("suggestion-box").value.trim();
     if (!text) return toast("اكتب اقتراحك أولاً");
