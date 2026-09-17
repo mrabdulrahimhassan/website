@@ -2,2091 +2,229 @@
 <html lang="ar">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>لوحة المستر — Mr. Abdulrahim Hassan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Mr. Abdulrahim Hassan</title>
 <meta name="theme-color" content="#2F6FED">
+<link rel="apple-touch-icon" href="https://i.ibb.co/0y2hF8Vc/Picsart-26-07-02-21-34-43-546.jpg">
 <link rel="icon" href="https://i.ibb.co/0y2hF8Vc/Picsart-26-07-02-21-34-43-546.jpg">
-<!-- Firebase (compat SDK — plain <script> tags, no build step, matches the
-     rest of this file) used only for signup verification (email link +
-     SMS OTP), scoped to this admin app only per request. -->
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
-<style>
-@font-face { font-family: "ARHeading"; src: url("https://files.catbox.moe/mxc4bg.ttf") format("truetype"); font-display: swap; }
-@font-face { font-family: "ARBody";    src: url("https://files.catbox.moe/sgpf34.otf") format("opentype"); font-display: swap; }
-@font-face { font-family: "ENHeading"; src: url("https://files.catbox.moe/28s19m.ttf") format("truetype"); font-display: swap; }
-@font-face { font-family: "ENBody";    src: url("https://files.catbox.moe/6jhd1c.ttf") format("truetype"); font-display: swap; }
-:root{
-  --ink:#1F2430; --ink-soft:#5B6472; --bg:#FFFFFF; --panel:#F5F7FB; --panel-line:#E7EBF3;
-  --blue:#2F6FED; --blue-deep:#1E4FBF; --coral:#FF8A5B; --mint:#22C7A0; --sun:#FFC857; --rose:#FF5D6C;
-  --radius:16px; --radius-sm:10px; --shadow-sm:0 4px 14px -6px rgba(31,36,48,.14);
-}
-*{box-sizing:border-box;}
-html,body{height:100%; overflow-x:hidden; max-width:100vw;}
-[hidden]{ display:none !important; }
-body{ margin:0; background:var(--panel); color:var(--ink); font-family:"ARBody","ENBody",system-ui,sans-serif; direction:rtl; }
-h1,h2,h3,.heading{ font-family:"ARHeading","ENHeading",system-ui,sans-serif; }
-button{ font-family:inherit; cursor:pointer; border:none; background:none; }
-input,select,textarea{ font-family:inherit; }
-a{ color:inherit; }
-* { scrollbar-width:thin; scrollbar-color:var(--blue) var(--panel); }
-*::-webkit-scrollbar{ width:8px; height:8px; }
-*::-webkit-scrollbar-thumb{ background:var(--blue); border-radius:8px; }
-
-/* ---------- Auth ---------- */
-.auth-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
-  background: radial-gradient(circle at 12% 8%, rgba(47,111,237,.14), transparent 45%), radial-gradient(circle at 90% 15%, rgba(255,138,91,.14), transparent 40%), radial-gradient(circle at 15% 92%, rgba(34,199,160,.13), transparent 40%); }
-.auth-card{ width:100%; max-width:400px; background:#fff; border-radius:var(--radius); padding:26px 22px; box-shadow:var(--shadow-sm); }
-.auth-card .logo-row{ text-align:center; margin-bottom:18px; }
-.auth-card .logo-row img{ height:56px; }
-.auth-card .logo-row h1{ font-size:18px; margin:8px 0 2px; }
-.auth-card .logo-row p{ font-size:12.5px; color:var(--ink-soft); margin:0; }
-.tabs{ display:flex; gap:6px; background:var(--panel); border-radius:999px; padding:4px; margin-bottom:16px; }
-.tabs button{ flex:1; padding:9px 6px; border-radius:999px; font-size:13px; color:var(--ink-soft); }
-.tabs button.active{ background:var(--blue); color:#fff; }
-.field{ margin-bottom:12px; }
-.field label{ display:block; font-size:12.5px; color:var(--ink-soft); margin-bottom:6px; }
-.field input, .field select, .field textarea{ width:100%; padding:11px 13px; border-radius:var(--radius-sm); border:1.5px solid var(--panel-line); background:#fff; font-size:14px; color:var(--ink); }
-.field input:focus, .field select:focus, .field textarea:focus{ outline:none; border-color:var(--blue); }
-.btn-primary{ width:100%; padding:12px; border-radius:999px; background:var(--blue); color:#fff; font-size:14.5px; font-weight:600; }
-.btn-primary:disabled{ opacity:.55; cursor:not-allowed; }
-.btn-primary:active{ transform:scale(.98); }
-.btn-primary.coral{ background:var(--coral); }
-.btn-ghost{ width:100%; padding:10px; border-radius:999px; background:var(--panel); color:var(--blue); font-size:13px; margin-top:8px; }
-.error-msg{ background:#FFF1F1; color:var(--rose); border:1px solid #FFD7DA; padding:9px 12px; border-radius:var(--radius-sm); font-size:13px; margin-bottom:12px; }
-.hint-msg{ background:#EAF1FF; color:var(--blue-deep); border:1px solid #D6E4FF; padding:9px 12px; border-radius:var(--radius-sm); font-size:12px; margin-bottom:12px; line-height:1.6; }
-
-/* ---------- Loading screens (initial boot + auth requests) ---------- */
-.loading-screen{ position:fixed; inset:0; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; background:var(--bg); text-align:center; }
-.loading-screen img{ height:56px; }
-.loading-screen p{ font-size:13.5px; color:var(--ink-soft); margin:0; }
-
-/* ---------- Shell ---------- */
-#shell{ display:flex; min-height:100vh; }
-.sidebar{ width:230px; flex-shrink:0; background:#fff; border-inline-start:1px solid var(--panel-line); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow-y:auto; z-index:20; }
-.sidebar .brand{ display:flex; align-items:center; gap:8px; padding:16px 14px; border-bottom:1px solid var(--panel-line); position:relative; }
-.sidebar .brand img{ height:32px; }
-.sidebar .brand .t1{ font-size:13px; font-weight:700; }
-.sidebar .brand .t2{ font-size:10px; color:var(--ink-soft); }
-.sidebar-close{ display:none; margin-inline-start:auto; width:28px; height:28px; border-radius:50%; background:var(--panel); align-items:center; justify-content:center; flex-shrink:0; }
-.nav-item{ display:flex; align-items:center; gap:10px; width:100%; padding:11px 16px; font-size:13px; color:var(--ink-soft); text-align:right; border-inline-start:3px solid transparent; }
-.nav-item .icon{ width:18px; height:18px; flex-shrink:0; }
-.nav-item.active{ color:var(--blue); background:#EAF1FF; border-inline-start-color:var(--blue); font-weight:600; }
-.nav-item .badge{ margin-inline-start:auto; background:var(--rose); color:#fff; font-size:10px; min-width:16px; height:16px; border-radius:8px; display:flex; align-items:center; justify-content:center; padding:0 4px; }
-.sidebar-footer{ margin-top:auto; padding:12px; border-top:1px solid var(--panel-line); }
-.sidebar-footer button{ width:100%; padding:9px; border-radius:999px; background:var(--panel); color:var(--rose); font-size:12.5px; }
-
-.hamburger{ display:none; position:fixed; top:12px; inset-inline-end:12px; z-index:40; width:38px; height:38px; border-radius:50%; background:#fff; box-shadow:var(--shadow-sm); align-items:center; justify-content:center; }
-@media (max-width:900px){
-  .hamburger{ display:flex; }
-  .sidebar{ position:fixed; inset-inline-start:0; top:0; height:100vh; transform:translateX(110%); transition:.25s; box-shadow:var(--shadow-sm); }
-  [dir="rtl"] .sidebar{ transform:translateX(110%); }
-  .sidebar.open{ transform:translateX(0); }
-  .sidebar-close{ display:flex; }
-  #sidebar-scrim{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:19; }
-  #sidebar-scrim.show{ display:block; }
-}
-@media (max-width:520px){
-  .field-row{ flex-direction:column; gap:0; }
-  .card-grid{ grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }
-  main{ padding:14px; padding-top:58px; }
-  .modal{ padding:16px; }
-}
-
-main{ flex:1; min-width:0; max-width:100%; padding:20px; padding-top:60px; overflow-x:hidden; }
-main .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:var(--radius); }
-main .table-scroll .data-table{ min-width:520px; }
-@media (min-width:901px){ main{ padding-top:20px; } }
-.section-title{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
-.section-title h2{ font-size:19px; margin:0; }
-.toolbar{ display:flex; gap:8px; flex-wrap:wrap; }
-
-/* ---------- Generic table/list ---------- */
-.data-table{ width:100%; border-collapse:collapse; background:#fff; border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow-sm); font-size:13px; }
-.data-table th{ background:var(--panel); padding:10px 12px; text-align:right; font-size:12px; color:var(--ink-soft); font-weight:600; }
-.data-table td{ padding:10px 12px; border-top:1px solid var(--panel-line); vertical-align:middle; }
-.data-table tr:hover td{ background:#FAFBFD; }
-.row-actions{ display:flex; gap:6px; }
-.row-actions button{ padding:6px 10px; border-radius:8px; font-size:11.5px; background:var(--panel); color:var(--ink); }
-.row-actions button.danger{ color:var(--rose); }
-.row-actions button.primary{ background:var(--blue); color:#fff; }
-.card-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
-.mini-card{ background:#fff; border-radius:var(--radius); padding:14px; box-shadow:var(--shadow-sm); }
-.stat-card{ background:#fff; border-radius:var(--radius); padding:16px; box-shadow:var(--shadow-sm); }
-.stat-card .num{ font-size:24px; font-weight:700; color:var(--blue-deep); }
-.stat-card .lbl{ font-size:12px; color:var(--ink-soft); margin-top:4px; }
-.status-pill{ font-size:10.5px; padding:3px 10px; border-radius:999px; font-weight:600; }
-.status-pill.open, .status-pill.paid, .status-pill.confirmed, .status-pill.active-pill{ background:#E7FBF5; color:#0F8F6E; }
-.status-pill.pending{ background:#FFF6E5; color:#9A6B00; }
-.status-pill.closed, .status-pill.banned{ background:#FFF1F1; color:var(--rose); }
-.empty{ text-align:center; color:var(--ink-soft); padding:36px 16px; font-size:13px; }
-.spinner{ width:22px; height:22px; border:2.5px solid var(--panel-line); border-top-color:var(--blue); border-radius:50%; animation:spin .7s linear infinite; margin:24px auto; }
-@keyframes spin{ to{ transform:rotate(360deg);} }
-.toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 18px; border-radius:999px; font-size:13px; z-index:80; }
-#conn-banner{ position:sticky; top:0; z-index:60; text-align:center; font-size:12px; padding:6px; background:var(--rose); color:#fff; }
-
-/* ---------- Modal ---------- */
-#modal-overlay{ position:fixed; inset:0; background:rgba(20,24,32,.45); z-index:70; display:flex; align-items:center; justify-content:center; padding:16px; }
-.modal{ width:100%; max-width:560px; max-height:88vh; overflow-y:auto; background:#fff; border-radius:var(--radius); padding:20px; }
-.modal .modal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
-.modal .modal-head h3{ font-size:16px; margin:0; }
-.modal .modal-head button{ width:30px; height:30px; border-radius:50%; background:var(--panel); }
-.field-row{ display:flex; gap:10px; }
-.field-row .field{ flex:1; }
-.checkbox-row{ display:flex; align-items:center; gap:8px; margin-bottom:12px; font-size:13px; }
-
-/* ---------- Rich text editor ---------- */
-.rte-toolbar{ display:flex; gap:6px; flex-wrap:wrap; padding:8px; background:var(--panel); border-radius:10px 10px 0 0; border:1.5px solid var(--panel-line); border-bottom:none; }
-.rte-toolbar button{ width:32px; height:32px; border-radius:8px; background:#fff; font-size:13px; display:flex; align-items:center; justify-content:center; border:1px solid var(--panel-line); }
-.rte-toolbar button.active{ background:var(--blue); color:#fff; }
-.rte-color{ width:22px; height:22px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px var(--panel-line); }
-.rte-editor{ min-height:120px; padding:12px 14px; border:1.5px solid var(--panel-line); border-radius:0 0 10px 10px; font-size:14px; line-height:1.8; direction:ltr; text-align:left; }
-.rte-editor:focus{ outline:none; border-color:var(--blue); }
-.rte-blocks-list{ margin-top:10px; }
-.rte-block-row{ display:flex; align-items:center; gap:8px; background:var(--panel); border-radius:10px; padding:8px 10px; margin-bottom:6px; }
-.rte-block-row .prev{ flex:1; font-size:12.5px; direction:ltr; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-
-/* ---------- Print report ---------- */
-@media print{
-  .sidebar, .hamburger, .toolbar, #conn-banner, .no-print{ display:none !important; }
-  main{ padding:0; }
-  body{ background:#fff; }
-}
-</style>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mr. Abdulrahim Hassan">
+<link rel="stylesheet" href="./style.css">
 </head>
-<body>
+<body class="no-select" oncontextmenu="return false" ondragstart="return false">
 
-<div id="conn-banner" hidden>لا يوجد اتصال بالإنترنت — البيانات لن تتحدث الآن</div>
+<div id="app">
+  <div id="conn-banner" class="ar" dir="rtl" hidden>لا يوجد اتصال بالإنترنت — البيانات لن تتحدث الآن</div>
 
-<!-- ============ INITIAL LOADING (shown before boot() decides where to go) ============ -->
-<div id="initial-loading" class="loading-screen">
-  <img src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
-  <div class="spinner"></div>
-  <p>جاري التحميل...</p>
-</div>
-
-<!-- ============ AUTH ============ -->
-<div id="view-auth" hidden>
-  <div class="auth-wrap">
-    <div class="auth-card">
-      <div class="logo-row">
+  <!-- ============ AUTH ============ -->
+  <div id="view-auth" dir="rtl" class="ar" hidden>
+    <div class="auth-wrap">
+      <div class="auth-hero">
         <img src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
-        <h1 class="heading">لوحة المستر</h1>
-        <p>Mr. Abdulrahim Hassan — إدارة المنصة</p>
-      </div>
-      <div id="auth-error" class="error-msg" hidden></div>
-      <div class="tabs" id="auth-tabs">
-        <button data-tab="login" class="active">تسجيل الدخول</button>
-        <button data-tab="signup">حساب جديد</button>
+        <h1 class="ar heading">Mr. Abdulrahim Hassan</h1>
+        <p>منصتك لتعلم اللغة الإنجليزية</p>
       </div>
 
-      <div id="login-form">
-        <div class="field"><label>اسم المستخدم</label><input id="li-username" type="text"></div>
-        <div class="field"><label>كلمة المرور</label><input id="li-password" type="password"></div>
-        <button class="btn-primary" id="btn-admin-login">دخول</button>
-      </div>
-
-      <div id="signup-form" hidden>
-        <div class="hint-msg">حسابك بيتفعّل تلقائي بعد ما تأكد بريدك الإلكتروني ورقم هاتفك — من غير ما تستنى موافقة حد</div>
-        <div class="field"><label>الاسم</label><input id="su-name" type="text"></div>
-        <div class="field"><label>اسم المستخدم</label><input id="su-username" type="text"></div>
-        <div class="field"><label>البريد الإلكتروني</label><input id="su-email" type="email"></div>
-        <div class="field"><label>رقم الهاتف (بالصيغة الدولية، مثال: +201012345678)</label><input id="su-phone" type="tel" placeholder="+20xxxxxxxxxx"></div>
-        <div class="field"><label>كلمة المرور</label><input id="su-password" type="password"></div>
-        <button class="btn-primary coral" id="btn-admin-signup">إنشاء الحساب</button>
-      </div>
-
-      <!-- Verification step — shown after signup, before the account is
-           actually created in Admins. Both checks must pass. -->
-      <div id="verify-form" hidden>
-        <div class="hint-msg">اتبقالك خطوة واحدة بس — أكّد الإيميل والهاتف عشان حسابك يتفعّل</div>
-        <div id="verify-error" class="error-msg" hidden></div>
-
-        <div class="mini-card" style="background:var(--panel);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <b>تأكيد البريد الإلكتروني</b>
-            <span id="verify-email-status" style="font-size:12px;color:var(--rose);">لسه ما اتأكدش</span>
-          </div>
-          <p style="font-size:12.5px;color:var(--ink-soft);margin:8px 0;">بعتنالك رابط تأكيد على بريدك — افتحه، وبعدين ارجع اضغط الزرار ده</p>
-          <button class="btn-ghost" id="btn-check-email" style="margin-top:0;">تحققت من الإيميل، تابع</button>
-          <button class="btn-ghost" id="btn-resend-email" style="margin-top:8px;">إعادة إرسال رابط التأكيد</button>
+      <div class="auth-card">
+        <div class="tabs" id="auth-role-tabs">
+          <button data-role="student" class="active">حساب طالب</button>
+          <button data-role="parent">حساب ولي أمر</button>
+        </div>
+        <div class="tabs" id="auth-mode-tabs">
+          <button data-mode="login" class="active">تسجيل الدخول</button>
+          <button data-mode="signup">إنشاء حساب</button>
         </div>
 
-        <div class="mini-card" style="background:var(--panel);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <b>تأكيد رقم الهاتف</b>
-            <span id="verify-phone-status" style="font-size:12px;color:var(--rose);">لسه ما اتأكدش</span>
-          </div>
-          <p style="font-size:12.5px;color:var(--ink-soft);margin:8px 0;">بعتنالك كود عن طريق SMS على رقمك</p>
-          <div class="field"><input id="otp-code" type="text" inputmode="numeric" maxlength="6" placeholder="اكتب الكود المكوّن من ٦ أرقام"></div>
-          <button class="btn-ghost" id="btn-verify-otp" style="margin-top:0;">تأكيد الكود</button>
-          <button class="btn-ghost" id="btn-resend-otp" style="margin-top:8px;">إعادة إرسال الكود</button>
+        <div id="auth-error" class="error-msg" hidden></div>
+
+        <!-- parent login -->
+        <div id="parent-login-form" hidden>
+          <div class="field"><label>رقم هاتف ولي الأمر</label><input id="pl-phone" type="tel" inputmode="numeric"></div>
+          <div class="field"><label>كلمة المرور</label><input id="pl-pass" type="password"></div>
+          <button class="btn-primary" id="btn-parent-login">دخول</button>
         </div>
 
-        <div id="recaptcha-container"></div>
-        <button class="btn-primary" id="btn-finish-signup">تفعيل الحساب والدخول</button>
+        <!-- parent signup -->
+        <div id="parent-signup-form" hidden>
+          <div class="field"><label>رقم هاتف ولي الأمر</label><input id="ps-phone" type="tel" maxlength="11" inputmode="numeric"></div>
+          <div class="field"><label>رقم هاتف الابن/الابنة المسجل بالمنصة</label><input id="ps-student-phone" type="tel" maxlength="11" inputmode="numeric"></div>
+          <div class="field-row">
+            <div class="field"><label>كلمة المرور</label><input id="ps-pass" type="password"></div>
+            <div class="field"><label>تأكيد كلمة المرور</label><input id="ps-pass2" type="password"></div>
+          </div>
+          <button class="btn-primary coral" id="btn-parent-signup">إنشاء حساب ولي الأمر</button>
+        </div>
+
+        <!-- login -->
+        <div id="login-form">
+          <div class="tabs" id="login-method-tabs">
+            <button data-method="phone" class="active">الهاتف</button>
+            <button data-method="email">البريد</button>
+            <button data-method="username">اسم المستخدم</button>
+          </div>
+          <div class="field" id="login-id-field">
+            <label id="login-id-label">رقم الهاتف</label>
+            <div class="field-icon">
+              <input id="login-id" type="text" inputmode="text" placeholder="">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.4 2.1L8 9.9a16 16 0 0 0 6 6l1.4-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.5 2.7.6a2 2 0 0 1 1.8 2.1z"/></svg>
+            </div>
+          </div>
+          <div class="field">
+            <label>كلمة المرور</label>
+            <div class="field-icon">
+              <input id="login-pass" type="password">
+              <svg class="icon" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            </div>
+          </div>
+          <button class="btn-primary" id="btn-login">دخول</button>
+          <div class="switch-link"><b id="forgot-pass-link" style="cursor:pointer;">نسيت كلمة المرور؟</b></div>
+        </div>
+
+        <!-- forgot password -->
+        <div id="forgot-form" hidden>
+          <div class="field"><label>رقم الهاتف المسجل</label><input id="fp-phone" type="tel" inputmode="numeric"></div>
+          <div class="field"><label>البريد الإلكتروني المسجل</label><input id="fp-email" type="email"></div>
+          <div class="field"><label>اسم المستخدم</label><input id="fp-username" type="text"></div>
+          <div class="field"><label>كلمة المرور الجديدة</label><input id="fp-pass" type="password"></div>
+          <div class="field"><label>تأكيد كلمة المرور الجديدة</label><input id="fp-pass2" type="password"></div>
+          <button class="btn-primary coral" id="btn-forgot-submit">تحديث كلمة المرور</button>
+          <div class="switch-link"><b id="forgot-back-link" style="cursor:pointer;">رجوع لتسجيل الدخول</b></div>
+        </div>
+
+        <!-- signup -->
+        <div id="signup-form" hidden>
+          <div class="field"><label>الاسم رباعيًا</label><input id="su-name" type="text"></div>
+          <div class="field"><label>رقم الهاتف (١١ رقم)</label><input id="su-phone" type="tel" maxlength="11" inputmode="numeric"></div>
+          <div class="field"><label>رقم هاتف ولي الأمر (١١ رقم)</label><input id="su-parent-phone" type="tel" maxlength="11" inputmode="numeric"></div>
+          <div class="field"><label>البريد الإلكتروني (اختياري)</label><input id="su-email" type="email"></div>
+          <div class="field">
+            <label>الصف الدراسي</label>
+            <select id="su-grade">
+              <option value="prep1">الأول الإعدادي</option>
+              <option value="prep2">الثاني الإعدادي</option>
+              <option value="prep3">الثالث الإعدادي</option>
+              <option value="sec1">الأول الثانوي</option>
+              <option value="sec2">الثاني الثانوي</option>
+              <option value="sec3">الثالث الثانوي</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>النوع</label>
+              <select id="su-gender"><option value="male">ذكر</option><option value="female">أنثى</option></select>
+            </div>
+            <div class="field"><label>تاريخ الميلاد</label><input id="su-dob" type="date"></div>
+          </div>
+          <div class="field"><label>اسم المستخدم (حروف إنجليزية صغيرة، بدون مسافات)</label><input id="su-username" type="text" pattern="[a-z0-9_.]+" placeholder="e.g. ahmed_2010"></div>
+          <div class="field-row">
+            <div class="field"><label>كلمة المرور</label><input id="su-pass" type="password"></div>
+            <div class="field"><label>تأكيد كلمة المرور</label><input id="su-pass2" type="password"></div>
+          </div>
+          <button class="btn-primary coral" id="btn-signup">إنشاء حساب وتسجيل الدخول</button>
+          <div class="switch-link"><b id="center-code-link" style="cursor:pointer;">عندك كود من السنتر؟ سجّل بيه</b></div>
+        </div>
+
+        <!-- center code: step 1, enter the code -->
+        <div id="center-code-step" hidden>
+          <div class="field"><label>كود السنتر</label><input id="cc-code" type="text"></div>
+          <button class="btn-primary" id="btn-cc-lookup">تحقق من الكود</button>
+          <div class="switch-link"><b id="cc-back-link" style="cursor:pointer;">رجوع</b></div>
+        </div>
+
+        <!-- center code: step 2, complete the missing data -->
+        <div id="center-complete-form" hidden>
+          <div class="field"><label>الاسم رباعيًا</label><input id="cc-name" type="text"></div>
+          <div class="field"><label>رقم الهاتف (١١ رقم)</label><input id="cc-phone" type="tel" maxlength="11" inputmode="numeric"></div>
+          <div class="field"><label>رقم هاتف ولي الأمر (١١ رقم)</label><input id="cc-parent-phone" type="tel" maxlength="11" inputmode="numeric"></div>
+          <div class="field"><label>البريد الإلكتروني (اختياري)</label><input id="cc-email" type="email"></div>
+          <div class="field-row">
+            <div class="field"><label>النوع</label><select id="cc-gender"><option value="male">ذكر</option><option value="female">أنثى</option></select></div>
+            <div class="field"><label>تاريخ الميلاد</label><input id="cc-dob" type="date"></div>
+          </div>
+          <div class="field"><label>اسم المستخدم (حروف إنجليزية صغيرة، بدون مسافات)</label><input id="cc-username" type="text" pattern="[a-z0-9_.]+"></div>
+          <div class="field-row">
+            <div class="field"><label>كلمة المرور</label><input id="cc-pass" type="password"></div>
+            <div class="field"><label>تأكيد كلمة المرور</label><input id="cc-pass2" type="password"></div>
+          </div>
+          <button class="btn-primary coral" id="btn-cc-complete">إكمال التسجيل وتسجيل الدخول</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Shown over the auth screen while a login/signup request is in flight -->
-<div id="auth-loading-overlay" class="loading-screen" hidden>
-  <img src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
-  <div class="spinner"></div>
-  <p>جاري التحميل...</p>
-</div>
+  <!-- ============ APP SHELL ============ -->
+  <div id="view-app" hidden>
+    <div class="header"><img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo"></div>
 
-<!-- ============ SHELL ============ -->
-<div id="view-shell" hidden>
-  <button class="hamburger" id="btn-hamburger">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-  </button>
-  <div id="sidebar-scrim"></div>
-  <div id="shell">
-    <div class="sidebar" id="sidebar">
-      <div class="brand">
-        <img src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo">
-        <div><div class="t1 heading">لوحة المستر</div><div class="t2">Mr. Abdulrahim Hassan</div></div>
-        <button class="sidebar-close" id="btn-sidebar-close" aria-label="إغلاق القائمة">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        </button>
-      </div>
-      <nav id="nav-list"></nav>
-      <div class="sidebar-footer">
-        <button id="btn-admin-logout">تسجيل الخروج</button>
-      </div>
+    <!-- Home / grade dashboard -->
+    <div id="screen-home" class="screen"></div>
+
+    <!-- Course -> tracks/lectures -->
+    <div id="screen-course" class="screen" hidden></div>
+
+    <!-- Single task (video/text/pdf/audio) -->
+    <div id="screen-task" class="screen" hidden></div>
+
+    <!-- Quiz -->
+    <div id="screen-quiz" class="screen" hidden></div>
+
+    <!-- Vocab listening quiz -->
+    <div id="screen-vocab" class="screen" hidden></div>
+
+    <!-- Forum -->
+    <div id="screen-forum" class="screen" dir="rtl" hidden></div>
+
+    <!-- FAQ -->
+    <div id="screen-faq" class="screen" dir="rtl" hidden></div>
+
+    <!-- Profile / attendance / results -->
+    <div id="screen-profile" class="screen" dir="rtl" hidden></div>
+
+    <div class="tabbar ar" dir="rtl">
+      <button data-tab="home" class="active">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
+        الرئيسية
+      </button>
+      <button data-tab="forum">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V6a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
+        المنتدى
+      </button>
+      <button data-tab="faq">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"/><path d="M12 17h.01"/></svg>
+        الأسئلة الشائعة
+      </button>
+      <button data-tab="profile">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+        حسابي
+      </button>
     </div>
-    <main id="main-content"></main>
+  </div>
+
+  <!-- ============ PARENT DASHBOARD ============ -->
+  <div id="view-parent" class="ar" dir="rtl" hidden>
+    <div class="header"><img class="logo" src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" alt="logo"></div>
+    <div id="screen-parent" class="screen"></div>
+    <div style="padding:0 18px 30px;"><button class="btn-ghost" id="btn-parent-logout">تسجيل الخروج</button></div>
+  </div>
+
+  <!-- ============ BANNED ============ -->
+  <div id="view-banned" class="banned-screen" hidden>
+    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M4.9 4.9l14.2 14.2"/></svg>
+    <h2 class="ar heading">تم إيقاف هذا الحساب</h2>
+    <p>يرجى التواصل مع المستر لمزيد من التفاصيل</p>
+  </div>
+
+  <div id="loading" class="screen" style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
+    <div class="spinner"></div>
   </div>
 </div>
 
-<div id="modal-root"></div>
+<!-- ============ WEEKLY REPORT (glass, printable) ============ -->
+<div id="report-overlay" class="ar" dir="rtl" hidden>
+  <div class="report-card glass" id="report-content"></div>
+</div>
 
-<script>
-/* =====================================================================
-   لوحة المستر — teacher-admin.js (scratch build file — gets spliced into
-   teacher-admin.html's inline <script> tag; not shipped as a separate file)
-   Talks to the SAME Sheetson spreadsheet as the student app and the
-   support apps — exact same CONFIG values, copied from app.js verbatim.
-   ===================================================================== */
-const CONFIG = {
-  sheetsonBase: "https://api.sheetson.com/v2",
-  spreadsheetId: "1vMOJsaOnXzvSRIb4nCOvy8HMjQnoAHmbaPGK0rYvbcc",
-  // Least-privilege split: reads use the read-only key, writes use the
-  // read-write key — this is an admin panel that writes constantly, but
-  // every plain list/lookup still only ever needs read access.
-  sheetsonApiKey: "9zwKUSkXy6dcg5gXhhKxVfsPWbXUq1CDR9kNlEbvnJWnjXXiYKSsFCPez38",
-  sheetsonReadOnlyKey: "CPCAbRUvuT3h3Mjv2OOkBO1ll1Fvlo4zrCAqI5fjoWsLeXHMDVglm-XuJxhG0Q",
-  imgbbKey: "36b0e2658ed6fad2ca48081442f1539b",
-  // Used ONLY for signup verification (email link + SMS OTP) — nothing else
-  // in this app touches Firebase; Sheetson/the Admins sheet is still where
-  // the actual account and login check live.
-  firebase: {
-    apiKey: "AIzaSyCTGnFOK7m_xNod8mwBPB5HTgTP2BrNm6o",
-    authDomain: "cyberintel-d0d4f.firebaseapp.com",
-    projectId: "cyberintel-d0d4f",
-    appId: "1:533279564815:web:d373567c2be86311127af7a",
-  },
-};
-
-/* ---------------------- Firebase init (signup verification only) ----------------------
-   Two things must be turned on in the Firebase Console for this to actually
-   work — I can't flip these from here:
-   1. Authentication → Sign-in method → enable "Email/Password" AND "Phone".
-   2. Authentication → Settings → Authorized domains → add the exact domain
-      this file is hosted on (same requirement as the Google sign-in button
-      in the student app needing its origin whitelisted).
-   Phone (SMS) auth on Firebase's free plan also has a daily quota and needs
-   billing enabled past a small free allowance — check the Firebase Console
-   if OTP sending starts failing after working initially. */
-firebase.initializeApp(CONFIG.firebase);
-const fbAuth = firebase.auth();
-let pendingFirebaseUser = null;
-let pendingConfirmationResult = null;
-let pendingAdminFields = null; // { name, username, email, phone, password }
-
-function ensureRecaptcha() {
-  if (window.recaptchaVerifier) return window.recaptchaVerifier;
-  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier("recaptcha-container", { size: "invisible" });
-  return window.recaptchaVerifier;
-}
-async function sendPhoneOtp(phone) {
-  const verifier = ensureRecaptcha();
-  pendingConfirmationResult = await fbAuth.signInWithPhoneNumber(phone, verifier);
-}
-function refreshVerifyStatusUI() {
-  const emailOk = !!pendingFirebaseUser?.emailVerified;
-  const phoneOk = !!window.phoneVerifiedOk;
-  const emailPill = document.getElementById("verify-email-status");
-  const phonePill = document.getElementById("verify-phone-status");
-  emailPill.textContent = emailOk ? "تم التأكيد ✓" : "لسه ما اتأكدش";
-  emailPill.style.color = emailOk ? "var(--mint)" : "var(--rose)";
-  phonePill.textContent = phoneOk ? "تم التأكيد ✓" : "لسه ما اتأكدش";
-  phonePill.style.color = phoneOk ? "var(--mint)" : "var(--rose)";
-  document.getElementById("btn-finish-signup").disabled = !(emailOk && phoneOk);
-}
-
-const GRADE_LABELS = {
-  prep1: "الأول الإعدادي", prep2: "الثاني الإعدادي", prep3: "الثالث الإعدادي",
-  sec1: "الأول الثانوي", sec2: "الثاني الثانوي", sec3: "الثالث الثانوي",
-};
-const GRADE_OPTIONS = [["all", "كل الصفوف"], ...Object.entries(GRADE_LABELS)];
-
-/* ---------------------- Sheetson helper (identical pattern to app.js) ---------------------- */
-async function sheetsonRequest(path, { method = "GET", query = {}, body } = {}) {
-  // TEMPORARILY disabled — see the matching note in app.js
-  const key = CONFIG.sheetsonApiKey;
-  const url = new URL(`${CONFIG.sheetsonBase}/${path}`);
-  url.searchParams.set("apiKey", key);
-  url.searchParams.set("spreadsheetId", CONFIG.spreadsheetId);
-  Object.entries(query).forEach(([k, v]) => url.searchParams.set(k, v));
-  if (method === "GET") url.searchParams.set("_ts", Date.now());
-  const headers = { Authorization: `Bearer ${key}`, "X-Spreadsheet-Id": CONFIG.spreadsheetId };
-  if (body) headers["Content-Type"] = "application/json";
-  let res;
-  try {
-    res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined, cache: "no-store" });
-  } catch (err) {
-    console.error(`sheetsonRequest network failure — ${method} ${path}:`, err);
-    throw new Error("تعذر الاتصال بقاعدة البيانات، تأكد من اتصالك بالإنترنت");
-  }
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    console.error(`sheetsonRequest ${method} ${path} failed: ${res.status} ${detail.slice(0, 300)}`);
-    throw new Error("تعذر الاتصال بقاعدة البيانات، تأكد من اتصالك بالإنترنت");
-  }
-  return res.json();
-}
-const Sheet = {
-  async list(name, { filter } = {}) {
-    let all = [], skip = 0;
-    const limit = 1000;
-    for (let page = 0; page < 20; page++) {
-      const json = await sheetsonRequest(`sheets/${name}`, { query: { skip, limit } });
-      const results = json.results || [];
-      all = all.concat(results);
-      if (!json.hasNextPage || results.length < limit) break;
-      skip += limit;
-    }
-    return filter ? all.filter(filter) : all;
-  },
-  async create(name, row) { return sheetsonRequest(`sheets/${name}`, { method: "POST", body: row }); },
-  async update(name, rowIndex, row) { return sheetsonRequest(`sheets/${name}/${rowIndex}`, { method: "PUT", body: row }); },
-  async delete(name, rowIndex) { return sheetsonRequest(`sheets/${name}/${rowIndex}`, { method: "DELETE" }); },
-};
-async function uploadToImgbb(file) {
-  const b64 = await new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result.split(",")[1]);
-    r.onerror = reject;
-    r.readAsDataURL(file);
-  });
-  const form = new FormData();
-  form.append("image", b64);
-  let res;
-  try {
-    res = await fetch(`https://api.imgbb.com/1/upload?key=${CONFIG.imgbbKey}`, { method: "POST", body: form });
-  } catch (err) {
-    console.error("imgbb network failure:", err);
-    throw new Error("تعذر الاتصال بخدمة رفع الصور، تأكد من اتصالك بالإنترنت");
-  }
-  let json;
-  try { json = await res.json(); } catch (err) { console.error("imgbb bad response:", err); throw new Error("تعذر رفع الصورة"); }
-  if (!json.success) {
-    console.error("imgbb upload rejected:", json);
-    throw new Error(json?.error?.message ? `تعذر رفع الصورة: ${json.error.message}` : "تعذر رفع الصورة");
-  }
-  return json.data.url;
-}
-
-/* ---------------------- Smooth, unified image-upload wiring ----------------------
-   Shared by the course-cover, teacher-file, and certificate-image uploaders
-   below: shows an instant local preview (via a blob URL) before the network
-   request even starts so it never feels frozen, disables the field while
-   uploading, and auto-retries once on failure before offering a manual
-   "إعادة المحاولة" button instead of just failing silently. */
-function wireSmoothImageUpload({ inputId, previewId, maxSizeMB = 5, onUploaded, onUploadingChange }) {
-  const input = document.getElementById(inputId);
-  const preview = document.getElementById(previewId);
-  if (!input || !preview) return;
-  input.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) { toast("اختر ملف صورة"); input.value = ""; return; }
-    if (file.size > maxSizeMB * 1024 * 1024) { toast(`حجم الصورة أكبر من ${maxSizeMB} ميجا`); input.value = ""; return; }
-    const localUrl = URL.createObjectURL(file);
-    input.disabled = true;
-    if (onUploadingChange) onUploadingChange(true);
-    preview.innerHTML = `
-      <div style="position:relative;display:inline-block;margin-top:6px;">
-        <img src="${localUrl}" style="height:70px;border-radius:8px;opacity:.45;display:block;">
-        <div class="spinner" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);margin:0;"></div>
-      </div>`;
-    const attemptUpload = async (isRetry) => {
-      try {
-        const url = await uploadToImgbb(file);
-        preview.innerHTML = `<img src="${url}" style="height:70px;border-radius:8px;margin-top:6px;display:block;">`;
-        input.disabled = false;
-        if (onUploadingChange) onUploadingChange(false);
-        onUploaded(url);
-        toast("تم رفع الصورة");
-      } catch (err) {
-        if (!isRetry) { attemptUpload(true); return; } // one silent auto-retry before bothering the teacher
-        input.disabled = false;
-        if (onUploadingChange) onUploadingChange(false);
-        preview.innerHTML = `
-          <div style="margin-top:6px;font-size:12px;color:var(--rose);">${escapeHtml(err.message || "تعذر رفع الصورة")}</div>
-          <button type="button" class="retry-upload-btn" style="margin-top:6px;padding:6px 12px;border-radius:8px;background:var(--panel);font-size:12px;">إعادة المحاولة</button>`;
-        preview.querySelector(".retry-upload-btn")?.addEventListener("click", () => attemptUpload(false));
-      }
-    };
-    attemptUpload(false);
-  });
-}
-/* ---------------------- Session (separate key from student/support apps) ---------------------- */
-const Session = {
-  get() { try { return JSON.parse(localStorage.getItem("mah_teacher_admin_session")); } catch { return null; } },
-  set(s) { localStorage.setItem("mah_teacher_admin_session", JSON.stringify(s)); },
-  clear() { localStorage.removeItem("mah_teacher_admin_session"); },
-};
-
-let toastTimer;
-function toast(msg) {
-  clearTimeout(toastTimer);
-  let el = document.querySelector(".toast");
-  if (!el) { el = document.createElement("div"); el.className = "toast"; document.body.appendChild(el); }
-  el.textContent = msg;
-  toastTimer = setTimeout(() => el.remove(), 2400);
-}
-function escapeHtml(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
-function svgIcon(path, cls = "icon") { return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`; }
-function uid(prefix) { return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000)}`; }
-function fmtDate(d) { return d ? new Date(d).toLocaleString("ar-EG") : ""; }
-
-function updateConnBanner() { document.getElementById("conn-banner").hidden = navigator.onLine; }
-window.addEventListener("online", updateConnBanner);
-window.addEventListener("offline", updateConnBanner);
-updateConnBanner();
-
-/* ---------------------- Auth (Admins sheet) ---------------------- */
-const authError = document.getElementById("auth-error");
-function showAuthError(msg) { authError.textContent = msg; authError.hidden = false; }
-function clearAuthError() { authError.hidden = true; }
-
-document.getElementById("auth-tabs").addEventListener("click", (e) => {
-  const btn = e.target.closest("button"); if (!btn) return;
-  clearAuthError();
-  document.querySelectorAll("#auth-tabs button").forEach((b) => b.classList.toggle("active", b === btn));
-  document.getElementById("login-form").hidden = btn.dataset.tab !== "login";
-  document.getElementById("signup-form").hidden = btn.dataset.tab !== "signup";
-  document.getElementById("verify-form").hidden = true;
-});
-
-document.getElementById("btn-admin-login").addEventListener("click", async () => {
-  clearAuthError();
-  const username = document.getElementById("li-username").value.trim();
-  const password = document.getElementById("li-password").value;
-  if (!username || !password) return showAuthError("من فضلك أدخل بيانات الدخول كاملة");
-  showAuthLoading();
-  try {
-    const rows = await Sheet.list("Admins", { filter: (r) => r.username === username });
-    const admin = rows.find((r) => r.password === password);
-    if (!admin) return showAuthError("بيانات الدخول غير صحيحة");
-    if (String(admin.approved).toLowerCase() !== "true") return showAuthError("حسابك لسه محتاج موافقة المستر قبل ما تقدر تدخل");
-    Session.set({ id: admin.id, username: admin.username, name: admin.name });
-    enterAdmin();
-  } catch (err) { showAuthError("تعذر الاتصال، تأكد من اتصالك بالإنترنت أو حدّث الصفحة وحاول تاني"); console.error(err); } finally { hideAuthLoading(); }
-});
-
-document.getElementById("btn-admin-signup").addEventListener("click", async () => {
-  clearAuthError();
-  const name = document.getElementById("su-name").value.trim();
-  const username = document.getElementById("su-username").value.trim();
-  const email = document.getElementById("su-email").value.trim();
-  const phone = document.getElementById("su-phone").value.trim();
-  const password = document.getElementById("su-password").value;
-  if (!name || !username || !email || !phone || !password) return showAuthError("من فضلك أدخل البيانات كاملة");
-  if (!/^\+\d{8,15}$/.test(phone)) return showAuthError("رقم الهاتف لازم يكون بالصيغة الدولية، مثال: +201012345678");
-  if (password.length < 6) return showAuthError("كلمة المرور يجب ألا تقل عن ٦ خانات");
-  showAuthLoading();
-  try {
-    const allAdmins = await Sheet.list("Admins");
-    if (allAdmins.some((r) => r.username === username)) return showAuthError("اسم المستخدم مستخدم بالفعل");
-    if (allAdmins.some((r) => (r.email || "").toLowerCase() === email.toLowerCase())) return showAuthError("البريد الإلكتروني مستخدم بالفعل");
-    // Create the Firebase Auth user first (this is what makes email-verification
-    // and phone OTP possible) — the actual Admins row in Sheetson only gets
-    // created once BOTH checks below pass, in finishAdminSignup().
-    const cred = await fbAuth.createUserWithEmailAndPassword(email, password);
-    pendingFirebaseUser = cred.user;
-    await pendingFirebaseUser.sendEmailVerification();
-    window.phoneVerifiedOk = false;
-    pendingAdminFields = { name, username, email, phone, password };
-    await sendPhoneOtp(phone);
-    document.getElementById("signup-form").hidden = true;
-    document.getElementById("verify-form").hidden = false;
-    refreshVerifyStatusUI();
-    toast("اتبعت رسالة تأكيد على إيميلك وكود عن طريق SMS على هاتفك");
-  } catch (err) {
-    console.error(err);
-    const messages = {
-      "auth/email-already-in-use": "البريد الإلكتروني ده مسجل بالفعل",
-      "auth/invalid-email": "البريد الإلكتروني غير صحيح",
-      "auth/weak-password": "كلمة المرور ضعيفة جدًا",
-      "auth/invalid-phone-number": "رقم الهاتف غير صحيح",
-      "auth/too-many-requests": "محاولات كتير، حاول تاني بعد شوية",
-    };
-    showAuthError(messages[err.code] || "تعذر إنشاء الحساب، تأكد من اتصالك بالإنترنت أو حدّث الصفحة وحاول تاني");
-  } finally { hideAuthLoading(); }
-});
-
-document.getElementById("btn-resend-email").addEventListener("click", async () => {
-  if (!pendingFirebaseUser) return;
-  try { await pendingFirebaseUser.sendEmailVerification(); toast("تم إعادة إرسال رابط التأكيد"); }
-  catch (err) { console.error(err); toast("تعذر إعادة الإرسال، حاول بعد شوية"); }
-});
-document.getElementById("btn-check-email").addEventListener("click", async () => {
-  if (!pendingFirebaseUser) return;
-  try {
-    await pendingFirebaseUser.reload();
-    pendingFirebaseUser = fbAuth.currentUser;
-    refreshVerifyStatusUI();
-    if (!pendingFirebaseUser.emailVerified) toast("لسه ما فتحتش رابط التأكيد اللي وصلك على الإيميل");
-  } catch (err) { console.error(err); toast("تعذر التحقق، حاول تاني"); }
-});
-document.getElementById("btn-resend-otp").addEventListener("click", async () => {
-  if (!pendingAdminFields) return;
-  try { window.recaptchaVerifier?.clear(); window.recaptchaVerifier = null; await sendPhoneOtp(pendingAdminFields.phone); toast("تم إعادة إرسال الكود"); }
-  catch (err) { console.error(err); toast("تعذر إعادة الإرسال، حاول بعد شوية"); }
-});
-document.getElementById("btn-verify-otp").addEventListener("click", async () => {
-  const code = document.getElementById("otp-code").value.trim();
-  if (!code) return document.getElementById("verify-error").hidden = false;
-  if (!pendingConfirmationResult) return;
-  try {
-    await pendingConfirmationResult.confirm(code);
-    window.phoneVerifiedOk = true;
-    document.getElementById("verify-error").hidden = true;
-    refreshVerifyStatusUI();
-    toast("تم تأكيد رقم الهاتف");
-  } catch (err) {
-    console.error(err);
-    const el = document.getElementById("verify-error");
-    el.textContent = "الكود غير صحيح، حاول تاني";
-    el.hidden = false;
-  }
-});
-document.getElementById("btn-finish-signup").addEventListener("click", async () => {
-  if (!pendingFirebaseUser?.emailVerified || !window.phoneVerifiedOk) return toast("لازم تأكد الإيميل والهاتف الأول");
-  showAuthLoading();
-  try {
-    const { name, username, email, phone, password } = pendingAdminFields;
-    const created = await Sheet.create("Admins", { id: uid("adm"), username, password, name, email, phone, approved: "true", createdAt: new Date().toISOString() });
-    Session.set({ id: created.id || uid("adm"), username, name });
-    enterAdmin();
-  } catch (err) { showAuthError("تعذر إنشاء الحساب، تأكد من اتصالك بالإنترنت أو حدّث الصفحة وحاول تاني"); console.error(err); } finally { hideAuthLoading(); }
-});
-
-document.getElementById("btn-admin-logout").addEventListener("click", () => { Session.clear(); location.reload(); });
-
-/* ---------------------- Sidebar nav + router ---------------------- */
-const NAV_SECTIONS = [
-  { key: "dashboard", label: "الرئيسية", icon: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>' },
-  { key: "students", label: "الطلاب", icon: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>' },
-  { key: "attendance", label: "الحضور", icon: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M9 16l2 2 4-4"/>' },
-  { key: "courses", label: "الكورسات والمحاضرات", icon: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>' },
-  { key: "notifications", label: "الإشعارات", icon: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>' },
-  { key: "schedule", label: "الجدول", icon: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>' },
-  { key: "homework", label: "الواجبات", icon: '<path d="M4 6h16M4 12h16M4 18h10"/>' },
-  { key: "bookings", label: "الحجوزات", icon: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M9 16l2 2 4-4"/>' },
-  { key: "payments", label: "المدفوعات", icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>' },
-  { key: "files", label: "ملفاتي", icon: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>' },
-  { key: "faqs", label: "الأسئلة الشائعة", icon: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"/><path d="M12 17h.01"/>' },
-  { key: "speaking-prompts", label: "جمل تمرين النطق", icon: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>' },
-  { key: "forum", label: "المنتدى", icon: '<path d="M21 15a4 4 0 0 1-4 4H8l-5 3V6a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>' },
-  { key: "ratings", label: "تقييمات المحاضرات", icon: '<polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/>' },
-  { key: "suggestions", label: "الاقتراحات", icon: '<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>' },
-  { key: "certificates", label: "الشهادات", icon: '<circle cx="12" cy="8" r="6"/><path d="M8.5 13.5L7 22l5-3 5 3-1.5-8.5"/>' },
-  { key: "reading", label: "قطع القراءة", icon: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>' },
-  { key: "grammar", label: "قواعد اللغة", icon: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>' },
-  { key: "task-questions", label: "أسئلة الطلاب", icon: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"/><path d="M12 17h.01"/>', badge: true },
-  { key: "admin-requests", label: "طلبات الإدارة", icon: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', badge: true },
-];
-let currentSection = "dashboard";
-
-let pendingAdminCount = 0; // legacy — badge counts are now set asynchronously via updateNavBadge()
-function renderNav() {
-  document.getElementById("nav-list").innerHTML = NAV_SECTIONS.map((s) => `
-    <button class="nav-item ${s.key === currentSection ? "active" : ""}" data-key="${s.key}">
-      ${svgIcon(s.icon)}<span>${s.label}</span>
-    </button>`).join("");
-  document.querySelectorAll(".nav-item").forEach((btn) =>
-    btn.addEventListener("click", () => { showSection(btn.dataset.key); closeSidebarMobile(); })
-  );
-  refreshPendingAdminBadge();
-  refreshTaskQuestionsBadge();
-}
-async function refreshPendingAdminBadge() {
-  try {
-    const admins = await Sheet.list("Admins", { filter: (r) => String(r.approved).toLowerCase() !== "true" });
-    updateNavBadge("admin-requests", admins.length);
-  } catch (err) { console.error(err); }
-}
-async function refreshTaskQuestionsBadge() {
-  try {
-    const questions = await Sheet.list("TaskQuestions", { filter: (r) => !r.answer });
-    updateNavBadge("task-questions", questions.length);
-  } catch (err) { console.error(err); }
-}
-function updateNavBadge(key, count) {
-  const badgeHolder = document.querySelector(`.nav-item[data-key="${key}"] .badge`);
-  if (count > 0 && !badgeHolder) {
-    const btn = document.querySelector(`.nav-item[data-key="${key}"]`);
-    if (btn) btn.insertAdjacentHTML("beforeend", `<span class="badge">${count}</span>`);
-  } else if (badgeHolder) {
-    if (count > 0) badgeHolder.textContent = count; else badgeHolder.remove();
-  }
-}
-
-const SECTION_RENDERERS = {}; // filled in by each section's part further down
-function showSection(key) {
-  currentSection = key;
-  renderNav();
-  const main = document.getElementById("main-content");
-  main.innerHTML = `<div class="spinner"></div>`;
-  const renderer = SECTION_RENDERERS[key];
-  if (renderer) renderer(main); else main.innerHTML = `<div class="empty">القسم غير متاح</div>`;
-}
-
-document.getElementById("btn-hamburger").addEventListener("click", () => {
-  document.getElementById("sidebar").classList.add("open");
-  document.getElementById("sidebar-scrim").classList.add("show");
-});
-function closeSidebarMobile() {
-  document.getElementById("sidebar").classList.remove("open");
-  document.getElementById("sidebar-scrim").classList.remove("show");
-}
-document.getElementById("sidebar-scrim").addEventListener("click", closeSidebarMobile);
-document.getElementById("btn-sidebar-close").addEventListener("click", closeSidebarMobile);
-
-/* ---------------------- Modal helper ---------------------- */
-function openModal(title, bodyHtml) {
-  document.getElementById("modal-root").innerHTML = `
-    <div id="modal-overlay">
-      <div class="modal">
-        <div class="modal-head"><h3 class="heading">${title}</h3><button id="modal-close">${svgIcon('<path d="M18 6L6 18M6 6l12 12"/>')}</button></div>
-        <div id="modal-body">${bodyHtml}</div>
-      </div>
-    </div>`;
-  document.getElementById("modal-close").addEventListener("click", closeModal);
-  document.getElementById("modal-overlay").addEventListener("click", (e) => { if (e.target.id === "modal-overlay") closeModal(); });
-}
-function closeModal() { document.getElementById("modal-root").innerHTML = ""; }
-
-/* ---------------------- Auth loading overlay ---------------------- */
-function showAuthLoading() { document.getElementById("auth-loading-overlay").hidden = false; }
-function hideAuthLoading() { document.getElementById("auth-loading-overlay").hidden = true; }
-
-/* ---------------------- Boot ---------------------- */
-function enterAdmin() {
-  document.getElementById("view-auth").hidden = true;
-  document.getElementById("view-shell").hidden = false;
-  renderNav();
-  showSection("dashboard");
-}
-(function boot() {
-  document.getElementById("initial-loading").hidden = true;
-  const s = Session.get();
-  if (s) enterAdmin();
-  else document.getElementById("view-auth").hidden = false;
-})();
-
-/* ======================================================================
-   SECTION: Admin approval requests — any new signup other than the very
-   first admin lands here as unapproved until someone already approved
-   clicks "موافقة". Rejecting just deletes the pending row.
-   ====================================================================== */
-SECTION_RENDERERS["admin-requests"] = async function (main) {
-  main.innerHTML = `<div class="section-title"><h2 class="heading">طلبات الإدارة</h2></div><div id="areq-list"><div class="spinner"></div></div>`;
-  try {
-    const pending = await Sheet.list("Admins", { filter: (r) => String(r.approved).toLowerCase() !== "true" });
-    const wrap = document.getElementById("areq-list");
-    wrap.innerHTML = pending.length ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>الاسم</th><th>اسم المستخدم</th><th>تاريخ الطلب</th><th>إجراءات</th></tr></thead><tbody>
-      ${pending.map((a) => `<tr data-id="${a.id}">
-        <td>${escapeHtml(a.name || "")}</td><td>${escapeHtml(a.username || "")}</td><td>${fmtDate(a.createdAt)}</td>
-        <td><div class="row-actions"><button class="primary approve-admin">موافقة</button><button class="danger reject-admin">رفض</button></div></td>
-      </tr>`).join("")}</tbody></table></div>` : `<div class="empty">لا توجد طلبات إدارة جديدة</div>`;
-    wrap.querySelectorAll("tr[data-id]").forEach((tr) => {
-      const admin = pending.find((a) => a.id === tr.dataset.id);
-      tr.querySelector(".approve-admin").addEventListener("click", async () => {
-        try { await Sheet.update("Admins", admin.rowIndex, { approved: "true" }); toast("تمت الموافقة"); showSection("admin-requests"); } catch { toast("تعذر التحديث"); }
-      });
-      tr.querySelector(".reject-admin").addEventListener("click", async () => {
-        if (!confirm(`رفض طلب "${admin.name}"؟`)) return;
-        try { await Sheet.delete("Admins", admin.rowIndex); toast("تم الرفض"); showSection("admin-requests"); } catch { toast("تعذر الرفض"); }
-      });
-    });
-  } catch (err) { document.getElementById("areq-list").innerHTML = `<div class="empty">تعذر تحميل الطلبات</div>`; console.error(err); }
-};
-
-/* ======================================================================
-   SECTION: Dashboard
-   ====================================================================== */
-SECTION_RENDERERS.dashboard = async function (main) {
-  main.innerHTML = `
-    <div class="section-title"><h2 class="heading">لوحة المتابعة</h2></div>
-    <div id="dash-stats" class="card-grid"><div class="spinner"></div></div>`;
-  try {
-    const [students, courses, bookings, suggestions, payments] = await Promise.all([
-      Sheet.list("Students"), Sheet.list("Courses"), Sheet.list("Bookings"),
-      Sheet.list("Suggestions"), Sheet.list("Payments"),
-    ]);
-    const bannedCount = students.filter((s) => String(s.banned).toLowerCase() === "true").length;
-    const pendingBookings = bookings.filter((b) => b.status === "pending").length;
-    const pendingPayments = payments.filter((p) => String(p.paid).toLowerCase() !== "true").length;
-    const stats = [
-      ["إجمالي الطلاب", students.length],
-      ["حسابات موقوفة", bannedCount],
-      ["الكورسات", courses.length],
-      ["حجوزات بانتظار الرد", pendingBookings],
-      ["مدفوعات معلّقة", pendingPayments],
-      ["اقتراحات جديدة", suggestions.length],
-    ];
-    document.getElementById("dash-stats").innerHTML = stats.map(([lbl, num]) => `
-      <div class="stat-card"><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`).join("");
-  } catch (err) { document.getElementById("dash-stats").innerHTML = `<div class="empty">تعذر تحميل الإحصائيات</div>`; console.error(err); }
-};
-
-/* ======================================================================
-   SECTION: Students — list/search, ban + WhatsApp-contact block toggles,
-   create-via-center-code, print a per-student report.
-   Students.blocked is the existing column already used for this in the live
-   sheet (confirmed real data: some rows already have blocked="TRUE") — blank/"false" by
-   default) — doesn't touch any existing column, purely additive.
-   ====================================================================== */
-let allStudentsCache = [];
-SECTION_RENDERERS.students = async function (main) {
-  main.innerHTML = `
-    <div class="section-title">
-      <h2 class="heading">الطلاب</h2>
-      <div class="toolbar">
-        <button class="btn-primary" id="btn-new-code" style="width:auto;padding:10px 16px;">${svgIcon('<path d="M12 5v14M5 12h14"/>')} إنشاء كود سنتر جديد</button>
-      </div>
-    </div>
-    <div class="field" style="max-width:320px;"><input id="student-search" type="text" placeholder="ابحث بالاسم أو الهاتف أو اليوزر..."></div>
-    <div id="students-table"><div class="spinner"></div></div>`;
-  document.getElementById("btn-new-code").addEventListener("click", openNewCenterCodeModal);
-  document.getElementById("student-search").addEventListener("input", (e) => drawStudentsTable(e.target.value));
-  try {
-    allStudentsCache = (await Sheet.list("Students")).sort((a, b) => (a.fullName || "").localeCompare(b.fullName || ""));
-    drawStudentsTable("");
-  } catch (err) { document.getElementById("students-table").innerHTML = `<div class="empty">تعذر تحميل الطلاب</div>`; console.error(err); }
-};
-
-function drawStudentsTable(q) {
-  const wrap = document.getElementById("students-table");
-  q = (q || "").trim().toLowerCase();
-  let list = allStudentsCache;
-  if (q) list = list.filter((s) => (s.fullName || "").toLowerCase().includes(q) || (s.phone || "").includes(q) || (s.username || "").toLowerCase().includes(q));
-  if (!list.length) { wrap.innerHTML = `<div class="empty">لا يوجد طلاب</div>`; return; }
-  wrap.innerHTML = `
-    <div class="table-scroll"><table class="data-table">
-      <thead><tr><th>الاسم</th><th>الصف</th><th>الهاتف</th><th>الحالة</th><th>واتساب</th><th>المحفظة</th><th>إجراءات</th></tr></thead>
-      <tbody>
-        ${list.map((s) => {
-          const banned = String(s.banned).toLowerCase() === "true";
-          const waBlocked = String(s.blocked).toLowerCase() === "true";
-          return `<tr data-id="${s.id}">
-            <td>${escapeHtml(s.fullName || "")}</td>
-            <td>${GRADE_LABELS[s.grade] || s.grade || ""}</td>
-            <td>${escapeHtml(s.phone || "")}</td>
-            <td><span class="status-pill ${banned ? "banned" : "active-pill"}">${banned ? "موقوف" : "نشط"}</span></td>
-            <td><span class="status-pill ${waBlocked ? "banned" : "active-pill"}">${waBlocked ? "محظور" : "مسموح"}</span></td>
-            <td>${escapeHtml(s.walletBalance || "0")}</td>
-            <td><div class="row-actions">
-              <button class="ban-toggle ${banned ? "primary" : "danger"}">${banned ? "إلغاء الإيقاف" : "إيقاف"}</button>
-              <button class="wa-toggle">${waBlocked ? "فك حظر واتساب" : "حظر واتساب"}</button>
-              <button class="student-wallet">المحفظة</button>
-              <button class="student-code">الكود</button>
-              <button class="student-notes">الملاحظات</button>
-              <button class="print-report">تقرير</button>
-            </div></td>
-          </tr>`;
-        }).join("")}
-      </tbody>
-    </table></div>`;
-  wrap.querySelectorAll("tr[data-id]").forEach((tr) => {
-    const student = list.find((s) => s.id === tr.dataset.id);
-    tr.querySelector(".ban-toggle").addEventListener("click", () => toggleStudentFlag(student, "banned"));
-    tr.querySelector(".wa-toggle").addEventListener("click", () => toggleStudentFlag(student, "blocked"));
-    tr.querySelector(".student-wallet").addEventListener("click", () => openStudentWalletModal(student));
-    tr.querySelector(".student-code").addEventListener("click", () => editStudentCode(student));
-    tr.querySelector(".student-notes").addEventListener("click", () => openStudentNotesModal(student));
-    tr.querySelector(".print-report").addEventListener("click", () => openStudentReportModal(student));
-  });
-}
-
-/* ---------- Wallet balance (Students.walletBalance) ---------- */
-function openStudentWalletModal(student) {
-  const current = Number(student.walletBalance) || 0;
-  openModal(`محفظة: ${escapeHtml(student.fullName || "")}`, `
-    <div class="stat-card" style="margin-bottom:16px;"><div class="num">${current}</div><div class="lbl">الرصيد الحالي</div></div>
-    <div class="field-row">
-      <div class="field"><label>المبلغ</label><input id="wal-amount" type="number" placeholder="مثال: 50"></div>
-      <div class="field"><label>العملية</label><select id="wal-op"><option value="add">إضافة</option><option value="sub">خصم</option><option value="set">تحديد رصيد جديد</option></select></div>
-    </div>
-    <button class="btn-primary" id="wal-save">تنفيذ</button>`);
-  document.getElementById("wal-save").addEventListener("click", async () => {
-    const amount = Number(document.getElementById("wal-amount").value);
-    const op = document.getElementById("wal-op").value;
-    if (!amount && op !== "set") return toast("اكتب مبلغ صحيح");
-    let newBalance = current;
-    if (op === "add") newBalance = current + amount;
-    else if (op === "sub") newBalance = Math.max(0, current - amount);
-    else newBalance = amount;
-    try {
-      await Sheet.update("Students", student.rowIndex, { walletBalance: String(newBalance) });
-      toast("تم تحديث المحفظة");
-      closeModal();
-      showSection("students");
-    } catch { toast("تعذر تحديث المحفظة"); }
-  });
-}
-
-/* ---------- Personal code (Students.code) ---------- */
-async function editStudentCode(student) {
-  const val = prompt("كود الطالب:", student.code || "");
-  if (val === null) return;
-  try { await Sheet.update("Students", student.rowIndex, { code: val.trim() }); toast("تم التحديث"); showSection("students"); }
-  catch { toast("تعذر التحديث"); }
-}
-
-/* ---------- Teacher's private notes for a student ---------- */
-async function openStudentNotesModal(student) {
-  openModal(`ملاحظات: ${escapeHtml(student.fullName || "")}`, `<div class="spinner"></div>`);
-  try {
-    const notes = (await Sheet.list("TeacherNotes", { filter: (r) => r.studentId === student.id })).sort((a, b) => new Date(b.date) - new Date(a.date));
-    renderStudentNotesList(student, notes);
-  } catch { document.getElementById("modal-body").innerHTML = `<div class="empty">تعذر تحميل الملاحظات</div>`; }
-}
-function renderStudentNotesList(student, notes) {
-  document.getElementById("modal-body").innerHTML = `
-    <div class="field"><textarea id="sn-text" rows="3" placeholder="اكتب ملاحظة جديدة..."></textarea></div>
-    <button class="btn-primary" id="sn-add">+ إضافة ملاحظة</button>
-    <div style="margin-top:14px;">
-      ${notes.length ? notes.map((n) => `
-        <div class="mini-card" style="margin-bottom:8px;">
-          <div style="font-size:13px;">${escapeHtml(n.note || "")}</div>
-          <div style="font-size:11px;color:var(--ink-soft);margin-top:6px;display:flex;justify-content:space-between;">
-            <span>${fmtDate(n.date)}</span><button class="danger del-note" data-id="${n.id}">حذف</button>
-          </div>
-        </div>`).join("") : `<div class="empty">لسه مفيش ملاحظات</div>`}
-    </div>`;
-  document.getElementById("sn-add").addEventListener("click", async () => {
-    const note = document.getElementById("sn-text").value.trim();
-    if (!note) return toast("اكتب الملاحظة الأول");
-    try { await Sheet.create("TeacherNotes", { id: uid("tn"), studentId: student.id, note, date: new Date().toISOString() }); openStudentNotesModal(student); } catch { toast("تعذر الحفظ"); }
-  });
-  document.querySelectorAll(".del-note").forEach((btn) => btn.addEventListener("click", async () => {
-    if (!confirm("حذف الملاحظة؟")) return;
-    const n = notes.find((x) => x.id === btn.dataset.id);
-    try { await Sheet.delete("TeacherNotes", n.rowIndex); openStudentNotesModal(student); } catch { toast("تعذر الحذف"); }
-  }));
-}
-
-async function toggleStudentFlag(student, field) {
-  const current = String(student[field]).toLowerCase() === "true";
-  const labels = { banned: ["إيقاف", "إلغاء إيقاف"], blocked: ["حظر واتساب", "فك حظر واتساب"] };
-  const [offLabel, onLabel] = labels[field];
-  if (!confirm(`${current ? onLabel : offLabel} حساب ${student.fullName}؟`)) return;
-  try {
-    await Sheet.update("Students", student.rowIndex, { [field]: current ? "false" : "true" });
-    toast("تم التحديث");
-    showSection("students");
-  } catch { toast("تعذر التحديث"); }
-}
-
-function openNewCenterCodeModal() {
-  openModal("إنشاء كود سنتر جديد", `
-    <div class="field"><label>الكود</label><input id="ncc-code" type="text" placeholder="مثال: MAH-2026-001"></div>
-    <div class="field"><label>الصف الدراسي</label><select id="ncc-grade">${Object.entries(GRADE_LABELS).map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select></div>
-    <div class="field"><label>رقم الهاتف (اختياري لو عايز تسبقه)</label><input id="ncc-phone" type="tel"></div>
-    <div class="field"><label>هاتف ولي الأمر (اختياري)</label><input id="ncc-parent-phone" type="tel"></div>
-    <div class="field"><label>الاسم (اختياري)</label><input id="ncc-name" type="text"></div>
-    <button class="btn-primary" id="ncc-save">إنشاء</button>`);
-  document.getElementById("ncc-save").addEventListener("click", async () => {
-    const code = document.getElementById("ncc-code").value.trim();
-    const grade = document.getElementById("ncc-grade").value;
-    if (!code) return toast("اكتب الكود");
-    try {
-      const existing = await Sheet.list("Students", { filter: (r) => r.centerCode === code });
-      if (existing.length) return toast("الكود ده مستخدم بالفعل");
-      await Sheet.create("Students", {
-        id: uid("st"), centerCode: code, grade,
-        phone: document.getElementById("ncc-phone").value.trim(),
-        parentPhone: document.getElementById("ncc-parent-phone").value.trim(),
-        fullName: document.getElementById("ncc-name").value.trim(),
-        banned: "false",
-      });
-      toast("تم إنشاء الكود");
-      closeModal();
-      showSection("students");
-    } catch { toast("تعذر إنشاء الكود"); }
-  });
-}
-
-async function openStudentReportModal(student) {
-  openModal(`تقرير الطالب: ${escapeHtml(student.fullName || "")}`, `<div class="spinner"></div>`);
-  try {
-    const [attendance, scores, payments] = await Promise.all([
-      Sheet.list("Attendance", { filter: (r) => r.studentId === student.id }),
-      Sheet.list("Scores", { filter: (r) => r.studentId === student.id }),
-      Sheet.list("Payments", { filter: (r) => r.studentId === student.id }),
-    ]);
-    const presentCount = attendance.filter((a) => String(a.present).toLowerCase() === "true").length;
-    const attendancePct = attendance.length ? Math.round((presentCount / attendance.length) * 100) : 0;
-    const avgScore = scores.length ? Math.round(scores.reduce((sum, s) => sum + (Number(s.score) / (Number(s.total) || 1)) * 100, 0) / scores.length) : 0;
-    document.getElementById("modal-body").innerHTML = `
-      <div id="printable-report" dir="rtl">
-        <div style="text-align:center;margin-bottom:14px;">
-          <img src="https://i.ibb.co/4g4YK4Qh/Picsart-26-07-02-21-34-00-868.png" style="height:44px;">
-          <h3 class="heading" style="margin:8px 0 2px;">تقرير الطالب</h3>
-        </div>
-        <div class="table-scroll"><table class="data-table">
-          <tbody>
-            <tr><td>الاسم</td><td>${escapeHtml(student.fullName || "")}</td></tr>
-            <tr><td>الصف الدراسي</td><td>${GRADE_LABELS[student.grade] || student.grade || ""}</td></tr>
-            <tr><td>الهاتف</td><td>${escapeHtml(student.phone || "")}</td></tr>
-            <tr><td>هاتف ولي الأمر</td><td>${escapeHtml(student.parentPhone || "")}</td></tr>
-            <tr><td>نسبة الحضور</td><td>${attendancePct}% (${presentCount} من ${attendance.length})</td></tr>
-            <tr><td>متوسط الدرجات</td><td>${avgScore}%</td></tr>
-            <tr><td>عدد الاختبارات</td><td>${scores.length}</td></tr>
-            <tr><td>حالة السداد</td><td>${payments.length ? payments.map((p) => String(p.paid).toLowerCase() === "true" ? "تم الدفع" : "غير مدفوع").join("، ") : "لا توجد بيانات"}</td></tr>
-          </tbody>
-        </table></div>
-      </div>
-      <button class="btn-primary no-print" id="btn-print-report" style="margin-top:14px;">طباعة التقرير</button>`;
-    document.getElementById("btn-print-report").addEventListener("click", () => window.print());
-  } catch (err) { document.getElementById("modal-body").innerHTML = `<div class="empty">تعذر تحميل التقرير</div>`; console.error(err); }
-}
-
-/* ======================================================================
-   SECTION: Attendance — pick a grade + lecture, mark each student
-   present/absent, save. Powers the attendance % shown in student reports
-   and in the student app's own profile screen.
-   ====================================================================== */
-SECTION_RENDERERS.attendance = function (main) {
-  main.innerHTML = `
-    <div class="section-title"><h2 class="heading">الحضور</h2></div>
-    <div class="field-row">
-      <div class="field"><label>الصف</label><select id="att-grade">${Object.entries(GRADE_LABELS).map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select></div>
-      <div class="field"><label>المحاضرة</label><select id="att-lecture"><option value="">جاري التحميل...</option></select></div>
-    </div>
-    <div id="att-roster"><div class="empty">اختر الصف والمحاضرة لعرض الطلاب</div></div>`;
-  document.getElementById("att-grade").addEventListener("change", loadAttendanceLectures);
-  document.getElementById("att-lecture").addEventListener("change", loadAttendanceRoster);
-  loadAttendanceLectures();
-};
-async function loadAttendanceLectures() {
-  const grade = document.getElementById("att-grade").value;
-  const sel = document.getElementById("att-lecture");
-  sel.innerHTML = `<option value="">جاري التحميل...</option>`;
-  try {
-    const courses = await Sheet.list("Courses", { filter: (r) => r.grade === grade });
-    const courseIds = new Set(courses.map((c) => c.id));
-    const lectures = courseIds.size ? await Sheet.list("Lectures", { filter: (r) => courseIds.has(r.courseId) }) : [];
-    const courseById = Object.fromEntries(courses.map((c) => [c.id, c.titleAr || c.title]));
-    sel.innerHTML = lectures.length
-      ? `<option value="">اختر محاضرة</option>` + lectures.map((l) => `<option value="${l.id}">${escapeHtml(courseById[l.courseId] || "")} — ${escapeHtml(l.title || "")}</option>`).join("")
-      : `<option value="">لا توجد محاضرات لهذا الصف</option>`;
-    document.getElementById("att-roster").innerHTML = `<div class="empty">اختر محاضرة لعرض الطلاب</div>`;
-  } catch { sel.innerHTML = `<option value="">تعذر التحميل</option>`; }
-}
-async function loadAttendanceRoster() {
-  const grade = document.getElementById("att-grade").value;
-  const lectureId = document.getElementById("att-lecture").value;
-  const wrap = document.getElementById("att-roster");
-  if (!lectureId) { wrap.innerHTML = `<div class="empty">اختر محاضرة لعرض الطلاب</div>`; return; }
-  wrap.innerHTML = `<div class="spinner"></div>`;
-  try {
-    const [students, existing] = await Promise.all([
-      Sheet.list("Students", { filter: (r) => r.grade === grade }),
-      Sheet.list("Attendance", { filter: (r) => r.lectureId === lectureId }),
-    ]);
-    const existingByStudent = Object.fromEntries(existing.map((a) => [a.studentId, a]));
-    wrap.innerHTML = students.length ? `
-      <div class="table-scroll"><table class="data-table"><thead><tr><th>الطالب</th><th>الحالة</th></tr></thead><tbody>
-        ${students.map((s) => {
-          const rec = existingByStudent[s.id];
-          const present = rec ? String(rec.present).toLowerCase() === "true" : null;
-          return `<tr data-sid="${s.id}" data-recid="${rec ? rec.id : ""}" data-rowindex="${rec ? rec.rowIndex : ""}" ${present !== null ? `data-selected="${present}"` : ""}>
-            <td>${escapeHtml(s.fullName || "")}</td>
-            <td><div class="row-actions">
-              <button class="att-btn ${present === true ? "primary" : ""}" data-val="true">حاضر</button>
-              <button class="att-btn ${present === false ? "primary" : ""}" data-val="false">غائب</button>
-            </div></td>
-          </tr>`;
-        }).join("")}
-      </tbody></table></div>
-      <button class="btn-primary" id="att-save" style="margin-top:14px;">حفظ الحضور</button>`
-      : `<div class="empty">لا يوجد طلاب في هذا الصف</div>`;
-    wrap.querySelectorAll(".att-btn").forEach((btn) => btn.addEventListener("click", () => {
-      const tr = btn.closest("tr");
-      tr.querySelectorAll(".att-btn").forEach((b) => b.classList.remove("primary"));
-      btn.classList.add("primary");
-      tr.dataset.selected = btn.dataset.val;
-    }));
-    const saveBtn = document.getElementById("att-save");
-    if (saveBtn) saveBtn.addEventListener("click", async () => {
-      const rows = wrap.querySelectorAll("tr[data-sid]");
-      let savedCount = 0;
-      for (const tr of rows) {
-        const selected = tr.dataset.selected;
-        if (selected === undefined) continue; // teacher didn't touch this student — leave their record as-is
-        const studentId = tr.dataset.sid;
-        const rowIndex = tr.dataset.rowindex;
-        try {
-          if (rowIndex) await Sheet.update("Attendance", rowIndex, { present: selected });
-          else await Sheet.create("Attendance", { id: uid("att"), studentId, lectureId, present: selected, date: new Date().toISOString() });
-          savedCount++;
-        } catch (err) { console.error(err); }
-      }
-      toast(`تم حفظ حضور ${savedCount} طالب`);
-      loadAttendanceRoster();
-    });
-  } catch (err) { wrap.innerHTML = `<div class="empty">تعذر تحميل الطلاب</div>`; console.error(err); }
-}
-
-/* ======================================================================
-   SECTION: Courses → Lectures → Tasks (nested), incl. rich-text editor
-   for text tasks (teacher picks Bold/Regular/Italic/Underline + a color
-   list — never types JSON by hand; convertTextBlocksToJson below builds
-   the Tasks.textJson the student app expects), quiz-question management,
-   and per-lecture vocab (تسميع) management. Video/voice/PDF are LINK
-   fields (matching the existing Tasks schema); only images are uploaded
-   directly (course cover images). No id is ever typed by hand anywhere
-   here — every id is auto-generated (uid()) and every relation (course,
-   lecture, task) is chosen from a list, never typed.
-   ====================================================================== */
-function safeParseJson(str, fallback) { try { const v = JSON.parse(str); return v || fallback; } catch { return fallback; } }
-
-let coursesCache = [], lecturesCache = [];
-let coursesViewState = { level: "courses" };
-function refreshCoursesView() { drawCoursesLevel(document.getElementById("main-content")); }
-
-SECTION_RENDERERS.courses = async function (main) {
-  coursesViewState = { level: "courses" };
-  drawCoursesLevel(main);
-};
-function drawCoursesLevel(main) {
-  if (coursesViewState.level === "lectures") return drawLecturesList(main);
-  if (coursesViewState.level === "tasks") return drawTasksList(main);
-  return drawCoursesList(main);
-}
-
-/* ---------- Courses list ---------- */
-async function drawCoursesList(main) {
-  main.innerHTML = `
-    <div class="section-title">
-      <h2 class="heading">الكورسات</h2>
-      <div class="toolbar"><button class="btn-primary" id="btn-new-course" style="width:auto;padding:10px 16px;">+ كورس جديد</button></div>
-    </div>
-    <div id="courses-grid" class="card-grid"><div class="spinner"></div></div>`;
-  document.getElementById("btn-new-course").addEventListener("click", () => openCourseModal(null));
-  try {
-    coursesCache = await Sheet.list("Courses");
-    const grid = document.getElementById("courses-grid");
-    grid.innerHTML = coursesCache.length ? coursesCache.map((c) => `
-      <div class="mini-card">
-        ${c.image ? `<img src="${c.image}" style="width:100%;height:100px;object-fit:cover;border-radius:10px;margin-bottom:8px;">` : ""}
-        <div style="font-weight:700;margin-bottom:4px;">${escapeHtml(c.titleAr || c.title || "")}</div>
-        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">${GRADE_LABELS[c.grade] || c.grade || ""}${c.month ? " — " + escapeHtml(c.month) : ""}</div>
-        <div class="row-actions">
-          <button class="primary open-lectures" data-id="${c.id}">المحاضرات</button>
-          <button class="edit-course" data-id="${c.id}">تعديل</button>
-          <button class="danger delete-course" data-id="${c.id}">حذف</button>
-        </div>
-      </div>`).join("") : `<div class="empty">لسه مفيش كورسات، اضغط "كورس جديد"</div>`;
-    grid.querySelectorAll(".open-lectures").forEach((btn) => btn.addEventListener("click", () => { coursesViewState = { level: "lectures", courseId: btn.dataset.id }; refreshCoursesView(); }));
-    grid.querySelectorAll(".edit-course").forEach((btn) => btn.addEventListener("click", () => openCourseModal(coursesCache.find((c) => c.id === btn.dataset.id))));
-    grid.querySelectorAll(".delete-course").forEach((btn) => btn.addEventListener("click", () => deleteCourse(coursesCache.find((c) => c.id === btn.dataset.id))));
-  } catch (err) { document.getElementById("courses-grid").innerHTML = `<div class="empty">تعذر تحميل الكورسات</div>`; console.error(err); }
-}
-function openCourseModal(course) {
-  openModal(course ? "تعديل الكورس" : "كورس جديد", `
-    <div class="field"><label>اسم الكورس (عربي)</label><input id="cm-titlear" value="${course ? escapeHtml(course.titleAr || "") : ""}"></div>
-    <div class="field"><label>اسم الكورس (إنجليزي، اختياري)</label><input id="cm-title" value="${course ? escapeHtml(course.title || "") : ""}"></div>
-    <div class="field-row">
-      <div class="field"><label>الصف الدراسي</label><select id="cm-grade">${Object.entries(GRADE_LABELS).map(([v, l]) => `<option value="${v}" ${course?.grade === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
-      <div class="field"><label>الشهر</label><input id="cm-month" value="${course ? escapeHtml(course.month || "") : ""}"></div>
-    </div>
-    <div class="field"><label>السعر</label><input id="cm-price" type="number" value="${course?.price || ""}"></div>
-    <div class="field"><label>صورة الغلاف</label><input id="cm-image-file" type="file" accept="image/*"><div id="cm-image-preview">${course?.image ? `<img src="${course.image}" style="height:60px;margin-top:6px;border-radius:8px;">` : ""}</div></div>
-    <button class="btn-primary" id="cm-save">حفظ</button>`);
-  let uploadedImage = course?.image || "";
-  let courseImageUploading = false;
-  wireSmoothImageUpload({
-    inputId: "cm-image-file", previewId: "cm-image-preview",
-    onUploaded: (url) => { uploadedImage = url; },
-    onUploadingChange: (uploading) => { courseImageUploading = uploading; document.getElementById("cm-save").disabled = uploading; },
-  });
-  document.getElementById("cm-save").addEventListener("click", async () => {
-    if (courseImageUploading) return toast("استنى لحد ما الصورة تخلص رفع");
-    const row = {
-      titleAr: document.getElementById("cm-titlear").value.trim(),
-      title: document.getElementById("cm-title").value.trim(),
-      grade: document.getElementById("cm-grade").value,
-      month: document.getElementById("cm-month").value.trim(),
-      price: document.getElementById("cm-price").value,
-      image: uploadedImage,
-    };
-    if (!row.titleAr) return toast("اكتب اسم الكورس");
-    try {
-      if (course) await Sheet.update("Courses", course.rowIndex, row);
-      else await Sheet.create("Courses", { id: uid("co"), ...row });
-      toast("تم الحفظ"); closeModal(); refreshCoursesView();
-    } catch { toast("تعذر الحفظ"); }
-  });
-}
-async function deleteCourse(course) {
-  if (!confirm(`حذف الكورس "${course.titleAr}"؟ لن يمكن التراجع، وهيتحذف معاه كل المحاضرات والمهام اللي جواه من واجهة الطالب`)) return;
-  try { await Sheet.delete("Courses", course.rowIndex); toast("تم الحذف"); refreshCoursesView(); }
-  catch { toast("تعذر الحذف"); }
-}
-
-/* ---------- Lectures list (within a course) ---------- */
-async function drawLecturesList(main) {
-  const { courseId } = coursesViewState;
-  const course = coursesCache.find((c) => c.id === courseId);
-  main.innerHTML = `
-    <div class="section-title">
-      <h2 class="heading">محاضرات: ${escapeHtml(course?.titleAr || "")}</h2>
-      <div class="toolbar">
-        <button class="btn-ghost" id="btn-back-courses" style="width:auto;padding:9px 14px;">→ رجوع للكورسات</button>
-        <button class="btn-primary" id="btn-new-lecture" style="width:auto;padding:10px 16px;">+ محاضرة جديدة</button>
-      </div>
-    </div>
-    <div id="lectures-list"><div class="spinner"></div></div>`;
-  document.getElementById("btn-back-courses").addEventListener("click", () => { coursesViewState = { level: "courses" }; refreshCoursesView(); });
-  document.getElementById("btn-new-lecture").addEventListener("click", () => openLectureModal(null, courseId));
-  try {
-    lecturesCache = (await Sheet.list("Lectures", { filter: (r) => r.courseId === courseId })).sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
-    const wrap = document.getElementById("lectures-list");
-    wrap.innerHTML = lecturesCache.length ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>الترتيب</th><th>العنوان</th><th>إجراءات</th></tr></thead><tbody>
-      ${lecturesCache.map((l) => `<tr>
-        <td>${l.order || ""}</td><td>${escapeHtml(l.title || "")}</td>
-        <td><div class="row-actions">
-          <button class="primary open-tasks" data-id="${l.id}">المهام</button>
-          <button class="manage-vocab" data-id="${l.id}">كلمات التسميع</button>
-          <button class="edit-lecture" data-id="${l.id}">تعديل</button>
-          <button class="danger delete-lecture" data-id="${l.id}">حذف</button>
-        </div></td>
-      </tr>`).join("")}
-    </tbody></table></div>` : `<div class="empty">لسه مفيش محاضرات، اضغط "محاضرة جديدة"</div>`;
-    wrap.querySelectorAll(".open-tasks").forEach((btn) => btn.addEventListener("click", () => { coursesViewState = { level: "tasks", courseId, lectureId: btn.dataset.id }; refreshCoursesView(); }));
-    wrap.querySelectorAll(".manage-vocab").forEach((btn) => btn.addEventListener("click", () => openVocabModal(btn.dataset.id)));
-    wrap.querySelectorAll(".edit-lecture").forEach((btn) => btn.addEventListener("click", () => openLectureModal(lecturesCache.find((l) => l.id === btn.dataset.id), courseId)));
-    wrap.querySelectorAll(".delete-lecture").forEach((btn) => btn.addEventListener("click", () => deleteLecture(lecturesCache.find((l) => l.id === btn.dataset.id))));
-  } catch (err) { document.getElementById("lectures-list").innerHTML = `<div class="empty">تعذر تحميل المحاضرات</div>`; console.error(err); }
-}
-function openLectureModal(lecture, courseId) {
-  openModal(lecture ? "تعديل المحاضرة" : "محاضرة جديدة", `
-    <div class="field"><label>عنوان المحاضرة</label><input id="lm-title" value="${lecture ? escapeHtml(lecture.title || "") : ""}"></div>
-    <div class="field"><label>الترتيب</label><input id="lm-order" type="number" value="${lecture?.order || ""}"></div>
-    <button class="btn-primary" id="lm-save">حفظ</button>`);
-  document.getElementById("lm-save").addEventListener("click", async () => {
-    const title = document.getElementById("lm-title").value.trim();
-    if (!title) return toast("اكتب عنوان المحاضرة");
-    const row = { title, order: document.getElementById("lm-order").value || "1", courseId };
-    try {
-      if (lecture) await Sheet.update("Lectures", lecture.rowIndex, row);
-      else await Sheet.create("Lectures", { id: uid("lec"), ...row });
-      toast("تم الحفظ"); closeModal();
-      coursesViewState = { level: "lectures", courseId };
-      refreshCoursesView();
-    } catch { toast("تعذر الحفظ"); }
-  });
-}
-async function deleteLecture(lecture) {
-  if (!confirm(`حذف المحاضرة "${lecture.title}"؟ وكل مهامها وكلماتها`)) return;
-  try { await Sheet.delete("Lectures", lecture.rowIndex); toast("تم الحذف"); refreshCoursesView(); }
-  catch { toast("تعذر الحذف"); }
-}
-
-/* ---------- Vocab (تسميع words) per lecture ---------- */
-async function openVocabModal(lectureId) {
-  openModal("كلمات التسميع", `<div class="spinner"></div>`);
-  try {
-    const words = await Sheet.list("Vocab", { filter: (r) => r.lectureId === lectureId });
-    renderVocabList(lectureId, words);
-  } catch { document.getElementById("modal-body").innerHTML = `<div class="empty">تعذر تحميل الكلمات</div>`; }
-}
-function renderVocabList(lectureId, words) {
-  document.getElementById("modal-body").innerHTML = `
-    <div class="field-row">
-      <div class="field"><input id="vm-en" placeholder="بالإنجليزي"></div>
-      <div class="field"><input id="vm-ar" placeholder="بالعربي"></div>
-    </div>
-    <button class="btn-primary" id="vm-add">+ إضافة كلمة</button>
-    <div id="vm-list" style="margin-top:12px;">
-      ${words.length ? words.map((w) => `
-        <div class="rte-block-row"><span class="prev">${escapeHtml(w.wordEn)} — ${escapeHtml(w.wordAr)}</span><button class="danger" data-id="${w.id}">حذف</button></div>`).join("")
-        : `<div class="empty">لسه مفيش كلمات</div>`}
-    </div>`;
-  document.getElementById("vm-add").addEventListener("click", async () => {
-    const wordEn = document.getElementById("vm-en").value.trim();
-    const wordAr = document.getElementById("vm-ar").value.trim();
-    if (!wordEn || !wordAr) return toast("اكتب الكلمة بالإنجليزي والعربي");
-    try { await Sheet.create("Vocab", { id: uid("voc"), lectureId, wordEn, wordAr }); openVocabModal(lectureId); } catch { toast("تعذر الإضافة"); }
-  });
-  document.querySelectorAll("#vm-list button[data-id]").forEach((btn) => btn.addEventListener("click", async () => {
-    const w = words.find((x) => x.id === btn.dataset.id);
-    if (!confirm("حذف الكلمة؟")) return;
-    try { await Sheet.delete("Vocab", w.rowIndex); openVocabModal(lectureId); } catch { toast("تعذر الحذف"); }
-  }));
-}
-
-/* ---------- Tasks list (within a lecture) ---------- */
-async function drawTasksList(main) {
-  const { courseId, lectureId } = coursesViewState;
-  const lecture = lecturesCache.find((l) => l.id === lectureId);
-  main.innerHTML = `
-    <div class="section-title">
-      <h2 class="heading">مهام: ${escapeHtml(lecture?.title || "")}</h2>
-      <div class="toolbar">
-        <button class="btn-ghost" id="btn-back-lectures" style="width:auto;padding:9px 14px;">→ رجوع للمحاضرات</button>
-        <button class="btn-primary" id="btn-new-task" style="width:auto;padding:10px 16px;">+ مهمة جديدة</button>
-      </div>
-    </div>
-    <div id="tasks-list"><div class="spinner"></div></div>`;
-  document.getElementById("btn-back-lectures").addEventListener("click", () => { coursesViewState = { level: "lectures", courseId }; refreshCoursesView(); });
-  document.getElementById("btn-new-task").addEventListener("click", () => openTaskModal(null, lectureId));
-  try {
-    const tasks = (await Sheet.list("Tasks", { filter: (r) => r.lectureId === lectureId })).sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
-    const wrap = document.getElementById("tasks-list");
-    const typeLabels = { video: "فيديو", text: "نص", pdf: "PDF", audio: "صوت", quiz: "اختبار" };
-    wrap.innerHTML = tasks.length ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>الترتيب</th><th>النوع</th><th>العنوان</th><th>إجراءات</th></tr></thead><tbody>
-      ${tasks.map((t) => `<tr>
-        <td>${t.order || ""}</td><td>${typeLabels[t.type] || t.type}</td><td>${escapeHtml(t.title || "")}</td>
-        <td><div class="row-actions">
-          ${t.type === "quiz" ? `<button class="primary manage-questions" data-id="${t.id}">الأسئلة</button>` : ""}
-          <button class="edit-task" data-id="${t.id}">تعديل</button>
-          <button class="danger delete-task" data-id="${t.id}">حذف</button>
-        </div></td>
-      </tr>`).join("")}
-    </tbody></table></div>` : `<div class="empty">لسه مفيش مهام، اضغط "مهمة جديدة"</div>`;
-    wrap.querySelectorAll(".edit-task").forEach((btn) => btn.addEventListener("click", () => openTaskModal(tasks.find((t) => t.id === btn.dataset.id), lectureId)));
-    wrap.querySelectorAll(".delete-task").forEach((btn) => btn.addEventListener("click", () => deleteTask(tasks.find((t) => t.id === btn.dataset.id))));
-    wrap.querySelectorAll(".manage-questions").forEach((btn) => btn.addEventListener("click", () => openQuizQuestionsModal(tasks.find((t) => t.id === btn.dataset.id))));
-  } catch (err) { document.getElementById("tasks-list").innerHTML = `<div class="empty">تعذر تحميل المهام</div>`; console.error(err); }
-}
-async function deleteTask(task) {
-  if (!confirm(`حذف المهمة "${task.title}"؟`)) return;
-  try { await Sheet.delete("Tasks", task.rowIndex); toast("تم الحذف"); refreshCoursesView(); }
-  catch { toast("تعذر الحذف"); }
-}
-
-/* ---------- Task modal (type-aware fields + rich-text editor for text tasks) ---------- */
-const TASK_TYPE_LABELS = { video: "فيديو", text: "نص", pdf: "PDF", audio: "صوت", quiz: "اختبار" };
-const RTE_COLORS = ["#1F2430", "#2F6FED", "#FF5D6C", "#22C7A0", "#FFC857", "#FF8A5B"];
-let currentTextBlocks = [];
-
-function taskTypeFieldsHtml(type, task) {
-  if (type === "video") return `<div class="field"><label>رابط الفيديو</label><input id="tm-videourl" value="${task ? escapeHtml(task.videoUrl || "") : ""}"></div>`;
-  if (type === "audio") return `<div class="field"><label>رابط الصوت</label><input id="tm-audiourl" value="${task ? escapeHtml(task.audioUrl || "") : ""}"></div>`;
-  if (type === "pdf") return `<div class="field"><label>رابط ملف PDF</label><input id="tm-pdfurl" value="${task ? escapeHtml(task.pdfUrl || "") : ""}"></div>`;
-  if (type === "quiz") return `<div class="field-row">
-      <div class="field"><label>وقت فتح الاختبار (اختياري)</label><input id="tm-starttime" type="datetime-local" value="${task?.startTime ? task.startTime.slice(0, 16) : ""}"></div>
-      <div class="field"><label>وقت غلق الاختبار (اختياري)</label><input id="tm-endtime" type="datetime-local" value="${task?.endTime ? task.endTime.slice(0, 16) : ""}"></div>
-    </div>
-    <div class="hint-msg" style="background:var(--panel);padding:9px 12px;border-radius:10px;font-size:12px;color:var(--ink-soft);">احفظ المهمة الأول، وبعدها هيظهرلك زرار "الأسئلة" في القائمة لإضافة أسئلة الاختبار</div>`;
-  if (type === "text") return `
-    <div class="rte-toolbar">
-      <button type="button" data-cmd="bold" title="بولد"><b>B</b></button>
-      <button type="button" data-cmd="removeFormat|weight" title="رفيع (عادي)">A</button>
-      <button type="button" data-cmd="italic" title="مائل"><i>I</i></button>
-      <button type="button" data-cmd="underline" title="تحته خط"><u>U</u></button>
-      ${RTE_COLORS.map((c) => `<button type="button" class="rte-color-btn" data-color="${c}" style="background:${c};border-radius:50%;width:26px;height:26px;padding:0;"></button>`).join("")}
-    </div>
-    <div class="rte-editor" id="tm-rte" contenteditable="true" dir="ltr"></div>
-    <button type="button" class="btn-ghost" id="tm-rte-add-block">+ إضافة كفقرة منفصلة</button>
-    <div class="rte-blocks-list" id="tm-rte-blocks"></div>`;
-  return "";
-}
-function wireTaskTypeFields(type) {
-  if (type !== "text") return;
-  const editor = document.getElementById("tm-rte");
-  document.querySelectorAll(".rte-toolbar [data-cmd]").forEach((btn) =>
-    btn.addEventListener("click", () => {
-      editor.focus();
-      if (btn.dataset.cmd === "removeFormat|weight") document.execCommand("removeFormat", false, null);
-      else document.execCommand(btn.dataset.cmd, false, null);
-    })
-  );
-  document.querySelectorAll(".rte-color-btn").forEach((btn) =>
-    btn.addEventListener("click", () => { editor.focus(); document.execCommand("foreColor", false, btn.dataset.color); })
-  );
-  document.getElementById("tm-rte-add-block").addEventListener("click", () => {
-    const html = editor.innerHTML.trim();
-    if (!html || html === "<br>") return;
-    currentTextBlocks.push({ html });
-    editor.innerHTML = "";
-    drawTextBlocksList();
-  });
-  drawTextBlocksList();
-}
-function drawTextBlocksList() {
-  const wrap = document.getElementById("tm-rte-blocks");
-  if (!wrap) return;
-  wrap.innerHTML = currentTextBlocks.length ? currentTextBlocks.map((b, i) => `
-    <div class="rte-block-row"><span class="prev">${b.html.replace(/<[^>]+>/g, " ").slice(0, 70)}</span><button type="button" class="danger" data-i="${i}">حذف</button></div>`).join("") : "";
-  wrap.querySelectorAll("button[data-i]").forEach((btn) => btn.addEventListener("click", () => { currentTextBlocks.splice(Number(btn.dataset.i), 1); drawTextBlocksList(); }));
-}
-function openTaskModal(task, lectureId) {
-  const type = task?.type || "video";
-  currentTextBlocks = task && task.type === "text" ? safeParseJson(task.textJson, []) : [];
-  openModal(task ? "تعديل المهمة" : "مهمة جديدة", `
-    <div class="field"><label>عنوان المهمة</label><input id="tm-title" value="${task ? escapeHtml(task.title || "") : ""}"></div>
-    <div class="field-row">
-      <div class="field"><label>النوع</label><select id="tm-type">${Object.entries(TASK_TYPE_LABELS).map(([v, l]) => `<option value="${v}" ${type === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
-      <div class="field"><label>الترتيب</label><input id="tm-order" type="number" value="${task?.order || ""}"></div>
-    </div>
-    <div id="tm-type-fields">${taskTypeFieldsHtml(type, task)}</div>
-    <button class="btn-primary" id="tm-save" style="margin-top:10px;">حفظ</button>`);
-  wireTaskTypeFields(type);
-  document.getElementById("tm-type").addEventListener("change", (e) => {
-    const newType = e.target.value;
-    currentTextBlocks = newType === "text" && newType === type ? currentTextBlocks : [];
-    document.getElementById("tm-type-fields").innerHTML = taskTypeFieldsHtml(newType, newType === type ? task : null);
-    wireTaskTypeFields(newType);
-  });
-  document.getElementById("tm-save").addEventListener("click", async () => {
-    const title = document.getElementById("tm-title").value.trim();
-    const selType = document.getElementById("tm-type").value;
-    if (!title) return toast("اكتب عنوان المهمة");
-    const row = { title, type: selType, order: document.getElementById("tm-order").value || "1", lectureId };
-    if (selType === "video") row.videoUrl = document.getElementById("tm-videourl").value.trim();
-    if (selType === "audio") row.audioUrl = document.getElementById("tm-audiourl").value.trim();
-    if (selType === "pdf") row.pdfUrl = document.getElementById("tm-pdfurl").value.trim();
-    if (selType === "quiz") {
-      const st = document.getElementById("tm-starttime").value;
-      const et = document.getElementById("tm-endtime").value;
-      row.startTime = st ? new Date(st).toISOString() : "";
-      row.endTime = et ? new Date(et).toISOString() : "";
-    }
-    if (selType === "text") {
-      const editorHtml = document.getElementById("tm-rte").innerHTML.trim();
-      const blocks = [...currentTextBlocks];
-      if (editorHtml && editorHtml !== "<br>") blocks.push({ html: editorHtml });
-      if (!blocks.length) return toast("اكتب محتوى النص");
-      row.textJson = JSON.stringify(blocks);
-    }
-    try {
-      if (task) await Sheet.update("Tasks", task.rowIndex, row);
-      else await Sheet.create("Tasks", { id: uid("tsk"), ...row });
-      toast("تم الحفظ"); closeModal(); refreshCoursesView();
-    } catch { toast("تعذر الحفظ"); }
-  });
-}
-
-/* ---------- Quiz questions (per quiz task) ---------- */
-async function openQuizQuestionsModal(task) {
-  openModal(`أسئلة: ${escapeHtml(task.title || "")}`, `<div class="spinner"></div>`);
-  try {
-    const questions = await Sheet.list("QuizQuestions", { filter: (r) => r.taskId === task.id });
-    renderQuizQuestionsList(task, questions);
-  } catch { document.getElementById("modal-body").innerHTML = `<div class="empty">تعذر تحميل الأسئلة</div>`; }
-}
-function renderQuizQuestionsList(task, questions) {
-  document.getElementById("modal-body").innerHTML = `
-    <button class="btn-primary" id="qq-add" style="margin-bottom:12px;">+ سؤال جديد</button>
-    <div id="qq-list">
-      ${questions.length ? questions.map((q) => {
-        const opts = safeParseJson(q.optionsJson, []);
-        return `<div class="mini-card" style="margin-bottom:8px;">
-          <div style="font-weight:600;margin-bottom:6px;">${escapeHtml(q.question || "")}</div>
-          <div style="font-size:12px;color:var(--ink-soft);">${opts.map((o) => o === q.correctAnswer ? `<b style="color:var(--mint);">${escapeHtml(o)}</b>` : escapeHtml(o)).join(" • ")}</div>
-          <div class="row-actions" style="margin-top:8px;">
-            <button class="edit-q" data-id="${q.id}">تعديل</button>
-            <button class="danger delete-q" data-id="${q.id}">حذف</button>
-          </div>
-        </div>`;
-      }).join("") : `<div class="empty">لسه مفيش أسئلة</div>`}
-    </div>`;
-  document.getElementById("qq-add").addEventListener("click", () => openQuizQuestionModal(task, null));
-  document.querySelectorAll(".edit-q").forEach((btn) => btn.addEventListener("click", () => openQuizQuestionModal(task, questions.find((q) => q.id === btn.dataset.id))));
-  document.querySelectorAll(".delete-q").forEach((btn) => btn.addEventListener("click", async () => {
-    const q = questions.find((x) => x.id === btn.dataset.id);
-    if (!confirm("حذف السؤال؟")) return;
-    try { await Sheet.delete("QuizQuestions", q.rowIndex); toast("تم الحذف"); openQuizQuestionsModal(task); } catch { toast("تعذر الحذف"); }
-  }));
-}
-function openQuizQuestionModal(task, q) {
-  const opts = q ? safeParseJson(q.optionsJson, ["", "", "", ""]) : ["", "", "", ""];
-  openModal(q ? "تعديل السؤال" : "سؤال جديد", `
-    <div class="field"><label>نص السؤال</label><textarea id="qqm-question" rows="2">${q ? escapeHtml(q.question || "") : ""}</textarea></div>
-    ${opts.map((o, i) => `<div class="field"><label>اختيار ${i + 1}</label><input class="qqm-opt" data-i="${i}" value="${escapeHtml(o || "")}"></div>`).join("")}
-    <div class="field"><label>الإجابة الصحيحة</label><select id="qqm-correct">${opts.map((o, i) => `<option value="${escapeHtml(o || "")}" ${q && q.correctAnswer === o ? "selected" : ""}>اختيار ${i + 1}${o ? ": " + escapeHtml(o) : ""}</option>`).join("")}</select></div>
-    <button class="btn-primary" id="qqm-save">حفظ</button>`);
-  document.querySelectorAll(".qqm-opt").forEach((inp) => inp.addEventListener("input", () => {
-    const vals = Array.from(document.querySelectorAll(".qqm-opt")).map((i) => i.value);
-    const sel = document.getElementById("qqm-correct");
-    const prevIdx = sel.selectedIndex;
-    sel.innerHTML = vals.map((v, i) => `<option value="${escapeHtml(v)}">اختيار ${i + 1}${v ? ": " + escapeHtml(v) : ""}</option>`).join("");
-    sel.selectedIndex = prevIdx;
-  }));
-  document.getElementById("qqm-save").addEventListener("click", async () => {
-    const question = document.getElementById("qqm-question").value.trim();
-    const vals = Array.from(document.querySelectorAll(".qqm-opt")).map((i) => i.value.trim());
-    const correctAnswer = document.getElementById("qqm-correct").value;
-    if (!question || vals.some((v) => !v)) return toast("اكتب السؤال وكل الاختيارات");
-    if (!correctAnswer) return toast("اختر الإجابة الصحيحة");
-    const row = { taskId: task.id, question, optionsJson: JSON.stringify(vals), correctAnswer };
-    try {
-      if (q) await Sheet.update("QuizQuestions", q.rowIndex, row);
-      else await Sheet.create("QuizQuestions", { id: uid("qq"), ...row });
-      toast("تم الحفظ");
-      openQuizQuestionsModal(task);
-    } catch { toast("تعذر الحفظ"); }
-  });
-}
-
-/* ======================================================================
-   Generic CRUD builder — used for the simpler flat sheets (Notifications,
-   Schedule, Homework, FAQs) so each one doesn't need its own bespoke
-   list/modal code. Bespoke sections (Students, Courses, TeacherFiles,
-   Bookings, Payments, Forum, etc.) are written by hand further below
-   where the data has real structure (relations, uploads, status flows).
-   ====================================================================== */
-function buildFieldsHtml(fields, row) {
-  return fields.map((f) => {
-    if (f.type === "select") return `<div class="field"><label>${f.label}</label><select id="gf-${f.key}">${f.options.map(([v, l]) => `<option value="${v}" ${row && row[f.key] === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>`;
-    if (f.type === "textarea") return `<div class="field"><label>${f.label}</label><textarea id="gf-${f.key}" rows="3">${row ? escapeHtml(row[f.key] || "") : ""}</textarea></div>`;
-    if (f.type === "datetime") return `<div class="field"><label>${f.label}</label><input id="gf-${f.key}" type="datetime-local" value="${row && row[f.key] ? row[f.key].slice(0, 16) : ""}"></div>`;
-    if (f.type === "date") return `<div class="field"><label>${f.label}</label><input id="gf-${f.key}" type="date" value="${row ? row[f.key] || "" : ""}"></div>`;
-    return `<div class="field"><label>${f.label}</label><input id="gf-${f.key}" value="${row ? escapeHtml(row[f.key] || "") : ""}"></div>`;
-  }).join("");
-}
-function readFieldsValues(fields) {
-  const out = {};
-  fields.forEach((f) => {
-    let v = document.getElementById(`gf-${f.key}`).value;
-    if (f.type === "datetime" && v) v = new Date(v).toISOString();
-    out[f.key] = v;
-  });
-  return out;
-}
-function renderSimpleCrudSection(main, cfg) {
-  main.innerHTML = `
-    <div class="section-title"><h2 class="heading">${cfg.title}</h2>
-      <div class="toolbar"><button class="btn-primary" id="gcrud-new" style="width:auto;padding:10px 16px;">+ جديد</button></div>
-    </div>
-    <div id="gcrud-list"><div class="spinner"></div></div>`;
-  document.getElementById("gcrud-new").addEventListener("click", () => openGenericModal(cfg, null));
-  loadGenericList(cfg);
-}
-async function loadGenericList(cfg) {
-  const wrap = document.getElementById("gcrud-list");
-  try {
-    let rows = await Sheet.list(cfg.sheetName);
-    if (cfg.sort) rows = rows.sort(cfg.sort);
-    wrap.innerHTML = rows.length ? `<div class="table-scroll"><table class="data-table"><thead><tr>${cfg.columns.map((c) => `<th>${c.label}</th>`).join("")}<th>إجراءات</th></tr></thead><tbody>
-      ${rows.map((r) => `<tr data-id="${r.id}">${cfg.columns.map((c) => `<td>${c.render ? c.render(r) : escapeHtml(r[c.key] || "")}</td>`).join("")}
-        <td><div class="row-actions">${cfg.extraRowAction ? cfg.extraRowAction.button : ""}<button class="edit-row">تعديل</button><button class="danger delete-row">حذف</button></div></td></tr>`).join("")}
-    </tbody></table></div>` : `<div class="empty">لا توجد بيانات، اضغط "+ جديد"</div>`;
-    wrap.querySelectorAll("tr[data-id]").forEach((tr) => {
-      const row = rows.find((r) => r.id === tr.dataset.id);
-      tr.querySelector(".edit-row").addEventListener("click", () => openGenericModal(cfg, row));
-      tr.querySelector(".delete-row").addEventListener("click", async () => {
-        if (!confirm("تأكيد الحذف؟")) return;
-        try { await Sheet.delete(cfg.sheetName, row.rowIndex); toast("تم الحذف"); loadGenericList(cfg); } catch { toast("تعذر الحذف"); }
-      });
-      if (cfg.extraRowAction) {
-        const btn = tr.querySelector(`.${cfg.extraRowAction.className}`);
-        if (btn) btn.addEventListener("click", () => cfg.extraRowAction.onClick(row));
-      }
-    });
-  } catch (err) { wrap.innerHTML = `<div class="empty">تعذر تحميل البيانات</div>`; console.error(err); }
-}
-function openGenericModal(cfg, row) {
-  openModal(row ? `تعديل — ${cfg.title}` : `${cfg.title} جديد`, buildFieldsHtml(cfg.fields, row) + `<button class="btn-primary" id="gcrud-save" style="margin-top:10px;">حفظ</button>`);
-  document.getElementById("gcrud-save").addEventListener("click", async () => {
-    const values = readFieldsValues(cfg.fields);
-    if (cfg.validate) { const errMsg = cfg.validate(values); if (errMsg) return toast(errMsg); }
-    if (cfg.beforeSave) Object.assign(values, cfg.beforeSave(row));
-    try {
-      if (row) await Sheet.update(cfg.sheetName, row.rowIndex, values);
-      else await Sheet.create(cfg.sheetName, { id: uid(cfg.idPrefix || "x"), ...values });
-      toast("تم الحفظ"); closeModal(); loadGenericList(cfg);
-    } catch { toast("تعذر الحفظ"); }
-  });
-}
-
-/* ---------- Notifications ---------- */
-SECTION_RENDERERS.notifications = function (main) {
-  renderSimpleCrudSection(main, {
-    title: "الإشعارات", sheetName: "Notifications", idPrefix: "ntf",
-    columns: [
-      { key: "grade", label: "الصف", render: (r) => GRADE_LABELS[r.grade] || (r.grade === "all" ? "كل الصفوف" : r.grade) },
-      { key: "title", label: "العنوان" },
-      { key: "body", label: "النص" },
-    ],
-    fields: [
-      { key: "grade", label: "الصف المستهدف", type: "select", options: GRADE_OPTIONS },
-      { key: "title", label: "عنوان الإشعار" },
-      { key: "body", label: "نص الإشعار", type: "textarea" },
-    ],
-    validate: (v) => (!v.title.trim() ? "اكتب عنوان الإشعار" : null),
-    beforeSave: () => ({ date: new Date().toISOString() }),
-    sort: (a, b) => new Date(b.date || 0) - new Date(a.date || 0),
-  });
-};
-
-/* ---------- Schedule ---------- */
-SECTION_RENDERERS.schedule = function (main) {
-  renderSimpleCrudSection(main, {
-    title: "الجدول", sheetName: "Schedule", idPrefix: "sch",
-    columns: [
-      { key: "grade", label: "الصف", render: (r) => GRADE_LABELS[r.grade] || (r.grade === "all" ? "كل الصفوف" : r.grade) },
-      { key: "day", label: "اليوم" }, { key: "time", label: "الميعاد" }, { key: "title", label: "الحصة" },
-    ],
-    fields: [
-      { key: "grade", label: "الصف", type: "select", options: GRADE_OPTIONS },
-      { key: "day", label: "اليوم (مثال: السبت)" },
-      { key: "time", label: "الميعاد (مثال: ٤:٠٠ م)" },
-      { key: "title", label: "عنوان الحصة" },
-    ],
-    validate: (v) => (!v.title.trim() ? "اكتب عنوان الحصة" : null),
-  });
-};
-
-/* ---------- Homework ---------- */
-SECTION_RENDERERS.homework = function (main) {
-  renderSimpleCrudSection(main, {
-    title: "الواجبات", sheetName: "Homework", idPrefix: "hw",
-    columns: [
-      { key: "grade", label: "الصف", render: (r) => GRADE_LABELS[r.grade] || (r.grade === "all" ? "كل الصفوف" : r.grade) },
-      { key: "title", label: "العنوان" }, { key: "dueDate", label: "آخر موعد", render: (r) => fmtDate(r.dueDate) },
-    ],
-    fields: [
-      { key: "grade", label: "الصف", type: "select", options: GRADE_OPTIONS },
-      { key: "title", label: "عنوان الواجب" },
-      { key: "description", label: "الوصف", type: "textarea" },
-      { key: "dueDate", label: "آخر موعد للتسليم", type: "datetime" },
-    ],
-    validate: (v) => (!v.title.trim() ? "اكتب عنوان الواجب" : null),
-    extraRowAction: { className: "view-subs", button: `<button class="view-subs">التسليمات</button>`, onClick: (row) => openHomeworkSubsModal(row) },
-  });
-};
-async function openHomeworkSubsModal(homework) {
-  openModal(`تسليمات: ${escapeHtml(homework.title || "")}`, `<div class="spinner"></div>`);
-  try {
-    const [subs, students] = await Promise.all([
-      Sheet.list("HomeworkSubs", { filter: (r) => r.homeworkId === homework.id }),
-      Sheet.list("Students"),
-    ]);
-    const studentById = Object.fromEntries(students.map((s) => [s.id, s.fullName]));
-    document.getElementById("modal-body").innerHTML = subs.length ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>الطالب</th><th>وقت التسليم</th></tr></thead><tbody>
-      ${subs.map((s) => `<tr><td>${escapeHtml(studentById[s.studentId] || s.studentId || "")}</td><td>${fmtDate(s.submittedAt || s.date)}</td></tr>`).join("")}
-    </tbody></table></div>` : `<div class="empty">لسه محدش سلّم الواجب ده</div>`;
-  } catch (err) { document.getElementById("modal-body").innerHTML = `<div class="empty">تعذر تحميل التسليمات</div>`; console.error(err); }
-}
-
-/* ---------- Speaking prompts (pronunciation practice sentences) ---------- */
-SECTION_RENDERERS["speaking-prompts"] = function (main) {
-  renderSimpleCrudSection(main, {
-    title: "جمل تمرين النطق", sheetName: "SpeakingPrompts", idPrefix: "sp",
-    columns: [
-      { key: "grade", label: "الصف", render: (r) => GRADE_LABELS[r.grade] || (r.grade === "all" ? "كل الصفوف" : r.grade) },
-      { key: "text", label: "الجملة" },
-    ],
-    fields: [
-      { key: "grade", label: "الصف المستهدف", type: "select", options: GRADE_OPTIONS },
-      { key: "text", label: "الجملة بالإنجليزي (اللي الطالب هيقراها بصوته)", type: "textarea" },
-    ],
-    validate: (v) => (!v.text.trim() ? "اكتب الجملة" : null),
-  });
-};
-
-/* ---------- FAQs ---------- */
-SECTION_RENDERERS.faqs = function (main) {
-  renderSimpleCrudSection(main, {
-    title: "الأسئلة الشائعة", sheetName: "FAQs", idPrefix: "faq",
-    columns: [{ key: "order", label: "الترتيب" }, { key: "question", label: "السؤال" }],
-    fields: [
-      { key: "question", label: "السؤال" },
-      { key: "answer", label: "الإجابة", type: "textarea" },
-      { key: "order", label: "الترتيب" },
-    ],
-    validate: (v) => (!v.question.trim() ? "اكتب السؤال" : !v.answer.trim() ? "اكتب الإجابة" : null),
-    sort: (a, b) => (Number(a.order) || 0) - (Number(b.order) || 0),
-  });
-};
-
-/* ======================================================================
-   SECTION: Teacher files — images upload directly (imgbb); video/voice/
-   PDF are link fields, matching how Tasks.videoUrl/audioUrl/pdfUrl work.
-   ====================================================================== */
-SECTION_RENDERERS.files = async function (main) {
-  main.innerHTML = `
-    <div class="section-title"><h2 class="heading">ملفاتي</h2>
-      <div class="toolbar"><button class="btn-primary" id="tf-new" style="width:auto;padding:10px 16px;">+ ملف جديد</button></div>
-    </div>
-    <div id="tf-list"><div class="spinner"></div></div>`;
-  document.getElementById("tf-new").addEventListener("click", () => openTeacherFileModal(null));
-  loadTeacherFiles();
-};
-async function loadTeacherFiles() {
-  const wrap = document.getElementById("tf-list");
-  try {
-    const rows = await Sheet.list("TeacherFiles");
-    const typeLabels = { image: "صورة", video: "فيديو", audio: "صوت", pdf: "PDF" };
-    wrap.innerHTML = rows.length ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>الصف</th><th>النوع</th><th>العنوان</th><th>إجراءات</th></tr></thead><tbody>
-      ${rows.map((r) => `<tr data-id="${r.id}">
-        <td>${GRADE_LABELS[r.grade] || (r.grade === "all" ? "كل الصفوف" : r.grade)}</td>
-        <td>${typeLabels[r.type] || r.type}</td><td>${escapeHtml(r.title || "")}</td>
-        <td><div class="row-actions"><button class="edit-row">تعديل</button><button class="danger delete-row">حذف</button></div></td>
-      </tr>`).join("")}</tbody></table></div>` : `<div class="empty">لسه مفيش ملفات، اضغط "+ ملف جديد"</div>`;
-    wrap.querySelectorAll("tr[data-id]").forEach((tr) => {
-      const row = rows.find((r) => r.id === tr.dataset.id);
-      tr.querySelector(".edit-row").addEventListener("click", () => openTeacherFileModal(row));
-      tr.querySelector(".delete-row").addEventListener("click", async () => {
-        if (!confirm("حذف الملف؟")) return;
-        try { await Sheet.delete("TeacherFiles", row.rowIndex); toast("تم الحذف"); loadTeacherFiles(); } catch { toast("تعذر الحذف"); }
-      });
-    });
-  } catch (err) { wrap.innerHTML = `<div class="empty">تعذر تحميل الملفات</div>`; console.error(err); }
-}
-function teacherFileTypeFieldHtml(type, row) {
-  if (type === "image") return `<div class="field"><label>رفع الصورة</label><input id="tfm-imgfile" type="file" accept="image/*"><div id="tfm-img-preview">${row?.fileUrl ? `<img src="${row.fileUrl}" style="height:60px;margin-top:6px;border-radius:8px;">` : ""}</div></div>`;
-  const labels = { video: "رابط الفيديو", audio: "رابط الصوت", pdf: "رابط ملف PDF" };
-  return `<div class="field"><label>${labels[type]}</label><input id="tfm-url" value="${row ? escapeHtml(row.fileUrl || "") : ""}"></div>`;
-}
-function openTeacherFileModal(row) {
-  const type = row?.type || "image";
-  let uploadedImage = row?.type === "image" ? row.fileUrl || "" : "";
-  let tfmImageUploading = false;
-  openModal(row ? "تعديل الملف" : "ملف جديد", `
-    <div class="field"><label>العنوان</label><input id="tfm-title" value="${row ? escapeHtml(row.title || "") : ""}"></div>
-    <div class="field-row">
-      <div class="field"><label>الصف المستهدف</label><select id="tfm-grade">${GRADE_OPTIONS.map(([v, l]) => `<option value="${v}" ${row?.grade === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
-      <div class="field"><label>النوع</label><select id="tfm-type"><option value="image" ${type === "image" ? "selected" : ""}>صورة</option><option value="video" ${type === "video" ? "selected" : ""}>فيديو</option><option value="audio" ${type === "audio" ? "selected" : ""}>صوت</option><option value="pdf" ${type === "pdf" ? "selected" : ""}>PDF</option></select></div>
-    </div>
-    <div id="tfm-type-field">${teacherFileTypeFieldHtml(type, row)}</div>
-    <button class="btn-primary" id="tfm-save" style="margin-top:10px;">حفظ</button>`);
-  function wireImageUpload() {
-    if (!document.getElementById("tfm-imgfile")) return;
-    wireSmoothImageUpload({
-      inputId: "tfm-imgfile", previewId: "tfm-img-preview",
-      onUploaded: (url) => { uploadedImage = url; },
-      onUploadingChange: (uploading) => { tfmImageUploading = uploading; document.getElementById("tfm-save").disabled = uploading; },
-    });
-  }
-  wireImageUpload();
-  document.getElementById("tfm-type").addEventListener("change", (e) => {
-    document.getElementById("tfm-type-field").innerHTML = teacherFileTypeFieldHtml(e.target.value, e.target.value === type ? row : null);
-    wireImageUpload();
-  });
-  document.getElementById("tfm-save").addEventListener("click", async () => {
-    if (tfmImageUploading) return toast("استنى لحد ما الصورة تخلص رفع");
-    const title = document.getElementById("tfm-title").value.trim();
-    const selType = document.getElementById("tfm-type").value;
-    if (!title) return toast("اكتب عنوان الملف");
-    const fileUrl = selType === "image" ? uploadedImage : document.getElementById("tfm-url").value.trim();
-    if (!fileUrl) return toast(selType === "image" ? "ارفع صورة" : "اكتب الرابط");
-    const rowData = { title, grade: document.getElementById("tfm-grade").value, type: selType, fileUrl };
-    try {
-      if (row) await Sheet.update("TeacherFiles", row.rowIndex, rowData);
-      else await Sheet.create("TeacherFiles", { id: uid("tf"), ...rowData });
-      toast("تم الحفظ"); closeModal(); loadTeacherFiles();
-    } catch { toast("تعذر الحفظ"); }
-  });
-}
-
-/* ======================================================================
-   SECTION: Bookings — confirm/reject requests, mark as done
-   ====================================================================== */
-SECTION_RENDERERS.bookings = async function (main) {
-  main.innerHTML = `<div class="section-title"><h2 class="heading">الحجوزات</h2></div><div id="bk-list"><div class="spinner"></div></div>`;
-  try {
-    const [bookings, students] = await Promise.all([Sheet.list("Bookings"), Sheet.list("Students")]);
-    const byId = Object.fromEntries(students.map((s) => [s.id, s.fullName]));
-    const wrap = document.getElementById("bk-list");
-    const sorted = bookings.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
-    wrap.innerHTML = sorted.length ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>الطالب</th><th>الملاحظة</th><th>التاريخ</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>
-      ${sorted.map((b) => `<tr data-id="${b.id}">
-        <td>${escapeHtml(byId[b.studentId] || b.studentId || "")}</td>
-        <td>${escapeHtml(b.note || "")}</td>
-        <td>${fmtDate(b.date || b.createdAt)}</td>
-        <td><span class="status-pill ${b.status}">${{ pending: "بانتظار الرد", confirmed: "تم التأكيد", done: "تمت" }[b.status] || b.status}</span></td>
-        <td><div class="row-actions">
-          <button class="primary bk-confirm">تأكيد</button>
-          <button class="bk-done">تمت</button>
-          <button class="danger bk-reject">رفض</button>
-        </div></td>
-      </tr>`).join("")}</tbody></table></div>` : `<div class="empty">لا توجد حجوزات</div>`;
-    wrap.querySelectorAll("tr[data-id]").forEach((tr) => {
-      const b = sorted.find((x) => x.id === tr.dataset.id);
-      const setStatus = async (status) => {
-        try { await Sheet.update("Bookings", b.rowIndex, { status }); toast("تم التحديث"); showSection("bookings"); } catch { toast("تعذر التحديث"); }
-      };
-      tr.querySelector(".bk-confirm").addEventListener("click", () => setStatus("confirmed"));
-      tr.querySelector(".bk-done").addEventListener("click", () => setStatus("done"));
-      tr.querySelector(".bk-reject").addEventListener("click", async () => { if (confirm("حذف طلب الحجز؟")) { try { await Sheet.delete("Bookings", b.rowIndex); toast("تم الحذف"); showSection("bookings"); } catch { toast("تعذر الحذف"); } } });
-    });
-  } catch (err) { document.getElementById("bk-list").innerHTML = `<div class="empty">تعذر تحميل الحجوزات</div>`; console.error(err); }
-};
-
-/* ======================================================================
-   SECTION: Payments — mark paid/pending per student per course
-   ====================================================================== */
-SECTION_RENDERERS.payments = async function (main) {
-  main.innerHTML = `
-    <div class="section-title"><h2 class="heading">المدفوعات</h2>
-      <div class="toolbar"><button class="btn-primary" id="pay-new" style="width:auto;padding:10px 16px;">+ تسجيل دفعة</button></div>
-    </div>
-    <div id="pay-list"><div class="spinner"></div></div>`;
-  document.getElementById("pay-new").addEventListener("click", openNewPaymentModal);
-  loadPayments();
-};
-async function loadPayments() {
-  const wrap = document.getElementById("pay-list");
-  try {
-    const [payments, students, courses] = await Promise.all([Sheet.list("Payments"), Sheet.list("Students"), Sheet.list("Courses")]);
-    const studentById = Object.fromEntries(students.map((s) => [s.id, s.fullName]));
-    const courseById = Object.fromEntries(courses.map((c) => [c.id, c.titleAr || c.title]));
-    wrap.innerHTML = payments.length ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>الطالب</th><th>الكورس</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>
-      ${payments.map((p) => {
-        const paid = String(p.paid).toLowerCase() === "true";
-        return `<tr data-id="${p.id}">
-        <td>${escapeHtml(studentById[p.studentId] || p.studentId || "")}</td>
-        <td>${escapeHtml(courseById[p.courseId] || p.courseId || "")}</td>
-        <td><span class="status-pill ${paid ? "paid" : "pending"}">${paid ? "تم الدفع" : "غير مدفوع"}</span></td>
-        <td><div class="row-actions"><button class="primary toggle-pay">${paid ? "تراجع" : "تأكيد الدفع"}</button><button class="danger del-pay">حذف</button></div></td>
-      </tr>`;
-      }).join("")}</tbody></table></div>` : `<div class="empty">لا توجد بيانات سداد بعد</div>`;
-    wrap.querySelectorAll("tr[data-id]").forEach((tr) => {
-      const p = payments.find((x) => x.id === tr.dataset.id);
-      tr.querySelector(".toggle-pay").addEventListener("click", async () => {
-        const paid = String(p.paid).toLowerCase() === "true";
-        try { await Sheet.update("Payments", p.rowIndex, { paid: paid ? "false" : "true" }); toast("تم التحديث"); loadPayments(); } catch { toast("تعذر التحديث"); }
-      });
-      tr.querySelector(".del-pay").addEventListener("click", async () => {
-        if (!confirm("حذف سجل الدفع؟")) return;
-        try { await Sheet.delete("Payments", p.rowIndex); toast("تم الحذف"); loadPayments(); } catch { toast("تعذر الحذف"); }
-      });
-    });
-  } catch (err) { wrap.innerHTML = `<div class="empty">تعذر تحميل المدفوعات</div>`; console.error(err); }
-}
-async function openNewPaymentModal() {
-  openModal("تسجيل دفعة جديدة", `<div class="spinner"></div>`);
-  try {
-    const [students, courses] = await Promise.all([Sheet.list("Students"), Sheet.list("Courses")]);
-    document.getElementById("modal-body").innerHTML = `
-      <div class="field"><label>الطالب</label><select id="npm-student">${students.map((s) => `<option value="${s.id}">${escapeHtml(s.fullName || "")}</option>`).join("")}</select></div>
-      <div class="field"><label>الكورس</label><select id="npm-course">${courses.map((c) => `<option value="${c.id}">${escapeHtml(c.titleAr || c.title || "")}</option>`).join("")}</select></div>
-      <div class="field"><label>الحالة</label><select id="npm-status"><option value="false">غير مدفوع</option><option value="true">تم الدفع</option></select></div>
-      <button class="btn-primary" id="npm-save">حفظ</button>`;
-    document.getElementById("npm-save").addEventListener("click", async () => {
-      try {
-        await Sheet.create("Payments", { id: uid("pay"), studentId: document.getElementById("npm-student").value, courseId: document.getElementById("npm-course").value, paid: document.getElementById("npm-status").value });
-        toast("تم الحفظ"); closeModal(); loadPayments();
-      } catch { toast("تعذر الحفظ"); }
-    });
-  } catch { document.getElementById("modal-body").innerHTML = `<div class="empty">تعذر تحميل البيانات</div>`; }
-}
-
-/* ======================================================================
-   SECTION: Forum moderation — view & delete posts/replies
-   ====================================================================== */
-SECTION_RENDERERS.forum = async function (main) {
-  main.innerHTML = `<div class="section-title"><h2 class="heading">المنتدى</h2></div><div id="fm-list"><div class="spinner"></div></div>`;
-  try {
-    const [posts, replies] = await Promise.all([Sheet.list("ForumPosts"), Sheet.list("ForumReplies")]);
-    const wrap = document.getElementById("fm-list");
-    const sorted = posts.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-    wrap.innerHTML = sorted.length ? sorted.map((p) => {
-      const postReplies = replies.filter((r) => r.postId === p.id);
-      return `<div class="mini-card" style="margin-bottom:10px;">
-        <div style="display:flex;justify-content:space-between;gap:8px;">
-          <div><b>${escapeHtml(p.studentName || "")}</b><div style="font-size:13px;margin-top:4px;">${escapeHtml(p.text || "")}</div></div>
-          <button class="danger del-post" data-id="${p.id}">حذف المنشور</button>
-        </div>
-        ${postReplies.length ? `<div style="margin-top:10px;padding-inline-start:14px;border-inline-start:2px solid var(--panel-line);">
-          ${postReplies.map((r) => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;margin-bottom:6px;">
-            <span><b>${escapeHtml(r.studentName || "")}:</b> ${escapeHtml(r.text || "")}</span>
-            <button class="danger del-reply" data-id="${r.id}">حذف</button>
-          </div>`).join("")}
-        </div>` : ""}
-      </div>`;
-    }).join("") : `<div class="empty">لا توجد منشورات</div>`;
-    wrap.querySelectorAll(".del-post").forEach((btn) => btn.addEventListener("click", async () => {
-      const p = sorted.find((x) => x.id === btn.dataset.id);
-      if (!confirm("حذف المنشور وكل رده عليه؟")) return;
-      try { await Sheet.delete("ForumPosts", p.rowIndex); toast("تم الحذف"); showSection("forum"); } catch { toast("تعذر الحذف"); }
-    }));
-    wrap.querySelectorAll(".del-reply").forEach((btn) => btn.addEventListener("click", async () => {
-      const r = replies.find((x) => x.id === btn.dataset.id);
-      if (!confirm("حذف الرد؟")) return;
-      try { await Sheet.delete("ForumReplies", r.rowIndex); toast("تم الحذف"); showSection("forum"); } catch { toast("تعذر الحذف"); }
-    }));
-  } catch (err) { document.getElementById("fm-list").innerHTML = `<div class="empty">تعذر تحميل المنتدى</div>`; console.error(err); }
-};
-
-/* ======================================================================
-   SECTION: Lecture ratings (view-only feedback)
-   ====================================================================== */
-SECTION_RENDERERS.ratings = async function (main) {
-  main.innerHTML = `<div class="section-title"><h2 class="heading">تقييمات المحاضرات</h2></div><div id="rt-list"><div class="spinner"></div></div>`;
-  try {
-    const [ratings, lectures] = await Promise.all([Sheet.list("LectureRatings"), Sheet.list("Lectures")]);
-    const lecById = Object.fromEntries(lectures.map((l) => [l.id, l.title]));
-    const wrap = document.getElementById("rt-list");
-    wrap.innerHTML = ratings.length ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>المحاضرة</th><th>التقييم</th><th>التعليق</th></tr></thead><tbody>
-      ${ratings.map((r) => `<tr><td>${escapeHtml(lecById[r.lectureId] || r.lectureId || "")}</td><td>${"⭐".repeat(Number(r.stars) || 0)}</td><td>${escapeHtml(r.comment || "")}</td></tr>`).join("")}
-    </tbody></table></div>` : `<div class="empty">لا توجد تقييمات بعد</div>`;
-  } catch (err) { document.getElementById("rt-list").innerHTML = `<div class="empty">تعذر تحميل التقييمات</div>`; console.error(err); }
-};
-
-/* ======================================================================
-   SECTION: Suggestions (view-only)
-   ====================================================================== */
-SECTION_RENDERERS.suggestions = async function (main) {
-  main.innerHTML = `<div class="section-title"><h2 class="heading">الاقتراحات والشكاوى</h2></div><div id="sg-list"><div class="spinner"></div></div>`;
-  try {
-    const rows = (await Sheet.list("Suggestions")).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-    document.getElementById("sg-list").innerHTML = rows.length ? rows.map((r) => `
-      <div class="mini-card" style="margin-bottom:8px;">
-        <div style="font-size:12px;color:var(--ink-soft);">${fmtDate(r.date)}</div>
-        <div style="margin-top:4px;">${escapeHtml(r.text || "")}</div>
-      </div>`).join("") : `<div class="empty">لا توجد اقتراحات بعد</div>`;
-  } catch (err) { document.getElementById("sg-list").innerHTML = `<div class="empty">تعذر تحميل الاقتراحات</div>`; console.error(err); }
-};
-
-/* ======================================================================
-   SECTION: Certificates — view issued ones + manually issue a new one
-   ====================================================================== */
-SECTION_RENDERERS.certificates = async function (main) {
-  main.innerHTML = `
-    <div class="section-title"><h2 class="heading">الشهادات</h2>
-      <div class="toolbar"><button class="btn-primary" id="cert-new" style="width:auto;padding:10px 16px;">+ إصدار شهادة</button></div>
-    </div>
-    <div id="cert-list"><div class="spinner"></div></div>`;
-  document.getElementById("cert-new").addEventListener("click", openIssueCertificateModal);
-  loadCertificates();
-};
-async function loadCertificates() {
-  const wrap = document.getElementById("cert-list");
-  try {
-    const [certs, students] = await Promise.all([Sheet.list("Certificates"), Sheet.list("Students")]);
-    const studentById = Object.fromEntries(students.map((s) => [s.id, s.fullName]));
-    wrap.innerHTML = certs.length ? `<div class="card-grid">${certs.map((c) => `
-      <div class="mini-card">
-        ${c.imageUrl ? `<img src="${c.imageUrl}" style="width:100%;height:100px;object-fit:cover;border-radius:10px;margin-bottom:8px;">` : ""}
-        <div style="font-weight:700;margin-bottom:4px;">${escapeHtml(c.title || "")}</div>
-        <div style="font-size:12px;color:var(--ink-soft);">${escapeHtml(studentById[c.studentId] || c.studentId || "")}</div>
-        <button class="danger" data-id="${c.id}" style="margin-top:8px;padding:6px 10px;border-radius:8px;font-size:11.5px;">حذف</button>
-      </div>`).join("")}</div>` : `<div class="empty">لسه مفيش شهادات صادرة</div>`;
-    wrap.querySelectorAll("button[data-id]").forEach((btn) => btn.addEventListener("click", async () => {
-      const c = certs.find((x) => x.id === btn.dataset.id);
-      if (!confirm("حذف الشهادة؟")) return;
-      try { await Sheet.delete("Certificates", c.rowIndex); toast("تم الحذف"); loadCertificates(); } catch { toast("تعذر الحذف"); }
-    }));
-  } catch (err) { wrap.innerHTML = `<div class="empty">تعذر تحميل الشهادات</div>`; console.error(err); }
-}
-async function openIssueCertificateModal() {
-  openModal("إصدار شهادة", `<div class="spinner"></div>`);
-  try {
-    const students = await Sheet.list("Students");
-    document.getElementById("modal-body").innerHTML = `
-      <div class="field"><label>الطالب</label><select id="cm-student">${students.map((s) => `<option value="${s.id}">${escapeHtml(s.fullName || "")}</option>`).join("")}</select></div>
-      <div class="field"><label>عنوان الشهادة</label><input id="cm-title" placeholder="مثال: شهادة إتمام كورس الصيف"></div>
-      <div class="field"><label>صورة الشهادة (اختياري)</label><input id="cm-imgfile" type="file" accept="image/*"><div id="cm-img-preview"></div></div>
-      <button class="btn-primary" id="cm-issue-save">إصدار</button>`;
-    let uploadedImage = "";
-    let certImageUploading = false;
-    wireSmoothImageUpload({
-      inputId: "cm-imgfile", previewId: "cm-img-preview",
-      onUploaded: (url) => { uploadedImage = url; },
-      onUploadingChange: (uploading) => { certImageUploading = uploading; document.getElementById("cm-issue-save").disabled = uploading; },
-    });
-    document.getElementById("cm-issue-save").addEventListener("click", async () => {
-      if (certImageUploading) return toast("استنى لحد ما الصورة تخلص رفع");
-      const title = document.getElementById("cm-title").value.trim();
-      if (!title) return toast("اكتب عنوان الشهادة");
-      try {
-        await Sheet.create("Certificates", { id: uid("cert"), studentId: document.getElementById("cm-student").value, title, imageUrl: uploadedImage, date: new Date().toISOString() });
-        toast("تم إصدار الشهادة"); closeModal(); loadCertificates();
-      } catch { toast("تعذر الإصدار"); }
-    });
-  } catch { document.getElementById("modal-body").innerHTML = `<div class="empty">تعذر تحميل البيانات</div>`; }
-}
-
-/* ======================================================================
-   SECTION: Reading passages — like Courses/Tasks, this is nested: a
-   passage list, and inside each passage a set of MCQ questions (reuses
-   the same pattern as quiz questions).
-   ====================================================================== */
-SECTION_RENDERERS.reading = async function (main) {
-  main.innerHTML = `
-    <div class="section-title"><h2 class="heading">قطع القراءة</h2>
-      <div class="toolbar"><button class="btn-primary" id="rp-new" style="width:auto;padding:10px 16px;">+ قطعة جديدة</button></div>
-    </div>
-    <div id="rp-list"><div class="spinner"></div></div>`;
-  document.getElementById("rp-new").addEventListener("click", () => openReadingPassageModal(null));
-  loadReadingPassages();
-};
-async function loadReadingPassages() {
-  const wrap = document.getElementById("rp-list");
-  try {
-    const passages = await Sheet.list("ReadingPassages");
-    wrap.innerHTML = passages.length ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>الصف</th><th>العنوان</th><th>إجراءات</th></tr></thead><tbody>
-      ${passages.map((p) => `<tr data-id="${p.id}">
-        <td>${GRADE_LABELS[p.grade] || (p.grade === "all" ? "كل الصفوف" : p.grade)}</td><td>${escapeHtml(p.title || "")}</td>
-        <td><div class="row-actions">
-          <button class="primary manage-rq">الأسئلة</button>
-          <button class="edit-rp">تعديل</button>
-          <button class="danger delete-rp">حذف</button>
-        </div></td>
-      </tr>`).join("")}</tbody></table></div>` : `<div class="empty">لسه مفيش قطع قراءة، اضغط "+ قطعة جديدة"</div>`;
-    wrap.querySelectorAll("tr[data-id]").forEach((tr) => {
-      const p = passages.find((x) => x.id === tr.dataset.id);
-      tr.querySelector(".manage-rq").addEventListener("click", () => openReadingQuestionsModal(p));
-      tr.querySelector(".edit-rp").addEventListener("click", () => openReadingPassageModal(p));
-      tr.querySelector(".delete-rp").addEventListener("click", async () => {
-        if (!confirm(`حذف القطعة "${p.title}"؟`)) return;
-        try { await Sheet.delete("ReadingPassages", p.rowIndex); toast("تم الحذف"); loadReadingPassages(); } catch { toast("تعذر الحذف"); }
-      });
-    });
-  } catch (err) { wrap.innerHTML = `<div class="empty">تعذر تحميل قطع القراءة</div>`; console.error(err); }
-}
-function openReadingPassageModal(passage) {
-  openModal(passage ? "تعديل القطعة" : "قطعة جديدة", `
-    <div class="field"><label>العنوان</label><input id="rpm-title" value="${passage ? escapeHtml(passage.title || "") : ""}"></div>
-    <div class="field"><label>الصف المستهدف</label><select id="rpm-grade">${GRADE_OPTIONS.map(([v, l]) => `<option value="${v}" ${passage?.grade === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
-    <div class="field"><label>نص القطعة (بالإنجليزي)</label><textarea id="rpm-text" rows="8" dir="ltr" style="text-align:left;">${passage ? escapeHtml(passage.text || "") : ""}</textarea></div>
-    <button class="btn-primary" id="rpm-save">حفظ</button>`);
-  document.getElementById("rpm-save").addEventListener("click", async () => {
-    const title = document.getElementById("rpm-title").value.trim();
-    const text = document.getElementById("rpm-text").value.trim();
-    if (!title || !text) return toast("اكتب العنوان والنص");
-    const row = { title, grade: document.getElementById("rpm-grade").value, text };
-    try {
-      if (passage) await Sheet.update("ReadingPassages", passage.rowIndex, row);
-      else await Sheet.create("ReadingPassages", { id: uid("rp"), ...row });
-      toast("تم الحفظ"); closeModal(); loadReadingPassages();
-    } catch { toast("تعذر الحفظ"); }
-  });
-}
-async function openReadingQuestionsModal(passage) {
-  openModal(`أسئلة: ${escapeHtml(passage.title || "")}`, `<div class="spinner"></div>`);
-  try {
-    const questions = await Sheet.list("ReadingQuestions", { filter: (r) => r.passageId === passage.id });
-    renderReadingQuestionsList(passage, questions);
-  } catch { document.getElementById("modal-body").innerHTML = `<div class="empty">تعذر تحميل الأسئلة</div>`; }
-}
-function renderReadingQuestionsList(passage, questions) {
-  document.getElementById("modal-body").innerHTML = `
-    <button class="btn-primary" id="rq-add" style="margin-bottom:12px;">+ سؤال جديد</button>
-    <div>${questions.length ? questions.map((q) => {
-      const opts = safeParseJson(q.optionsJson, []);
-      return `<div class="mini-card" style="margin-bottom:8px;">
-        <div style="font-weight:600;margin-bottom:6px;">${escapeHtml(q.question || "")}</div>
-        <div style="font-size:12px;color:var(--ink-soft);">${opts.map((o) => o === q.correctAnswer ? `<b style="color:var(--mint);">${escapeHtml(o)}</b>` : escapeHtml(o)).join(" • ")}</div>
-        <div class="row-actions" style="margin-top:8px;"><button class="edit-rq" data-id="${q.id}">تعديل</button><button class="danger delete-rq" data-id="${q.id}">حذف</button></div>
-      </div>`;
-    }).join("") : `<div class="empty">لسه مفيش أسئلة</div>`}</div>`;
-  document.getElementById("rq-add").addEventListener("click", () => openReadingQuestionModal(passage, null));
-  document.querySelectorAll(".edit-rq").forEach((btn) => btn.addEventListener("click", () => openReadingQuestionModal(passage, questions.find((q) => q.id === btn.dataset.id))));
-  document.querySelectorAll(".delete-rq").forEach((btn) => btn.addEventListener("click", async () => {
-    const q = questions.find((x) => x.id === btn.dataset.id);
-    if (!confirm("حذف السؤال؟")) return;
-    try { await Sheet.delete("ReadingQuestions", q.rowIndex); toast("تم الحذف"); openReadingQuestionsModal(passage); } catch { toast("تعذر الحذف"); }
-  }));
-}
-function openReadingQuestionModal(passage, q) {
-  const opts = q ? safeParseJson(q.optionsJson, ["", "", "", ""]) : ["", "", "", ""];
-  openModal(q ? "تعديل السؤال" : "سؤال جديد", `
-    <div class="field"><label>نص السؤال</label><textarea id="rqm-question" rows="2">${q ? escapeHtml(q.question || "") : ""}</textarea></div>
-    ${opts.map((o, i) => `<div class="field"><label>اختيار ${i + 1}</label><input class="rqm-opt" data-i="${i}" value="${escapeHtml(o || "")}"></div>`).join("")}
-    <div class="field"><label>الإجابة الصحيحة</label><select id="rqm-correct">${opts.map((o, i) => `<option value="${escapeHtml(o || "")}" ${q && q.correctAnswer === o ? "selected" : ""}>اختيار ${i + 1}${o ? ": " + escapeHtml(o) : ""}</option>`).join("")}</select></div>
-    <button class="btn-primary" id="rqm-save">حفظ</button>`);
-  document.querySelectorAll(".rqm-opt").forEach((inp) => inp.addEventListener("input", () => {
-    const vals = Array.from(document.querySelectorAll(".rqm-opt")).map((i) => i.value);
-    const sel = document.getElementById("rqm-correct");
-    const prevIdx = sel.selectedIndex;
-    sel.innerHTML = vals.map((v, i) => `<option value="${escapeHtml(v)}">اختيار ${i + 1}${v ? ": " + escapeHtml(v) : ""}</option>`).join("");
-    sel.selectedIndex = prevIdx;
-  }));
-  document.getElementById("rqm-save").addEventListener("click", async () => {
-    const question = document.getElementById("rqm-question").value.trim();
-    const vals = Array.from(document.querySelectorAll(".rqm-opt")).map((i) => i.value.trim());
-    const correctAnswer = document.getElementById("rqm-correct").value;
-    if (!question || vals.some((v) => !v)) return toast("اكتب السؤال وكل الاختيارات");
-    if (!correctAnswer) return toast("اختر الإجابة الصحيحة");
-    const row = { passageId: passage.id, question, optionsJson: JSON.stringify(vals), correctAnswer };
-    try {
-      if (q) await Sheet.update("ReadingQuestions", q.rowIndex, row);
-      else await Sheet.create("ReadingQuestions", { id: uid("rq"), ...row });
-      toast("تم الحفظ");
-      openReadingQuestionsModal(passage);
-    } catch { toast("تعذر الحفظ"); }
-  });
-}
-
-/* ---------- Grammar notes bank ---------- */
-SECTION_RENDERERS.grammar = function (main) {
-  renderSimpleCrudSection(main, {
-    title: "قواعد اللغة", sheetName: "GrammarNotes", idPrefix: "gr",
-    columns: [
-      { key: "grade", label: "الصف", render: (r) => GRADE_LABELS[r.grade] || (r.grade === "all" ? "كل الصفوف" : r.grade) },
-      { key: "title", label: "العنوان" },
-    ],
-    fields: [
-      { key: "grade", label: "الصف المستهدف", type: "select", options: GRADE_OPTIONS },
-      { key: "title", label: "عنوان القاعدة" },
-      { key: "explanation", label: "الشرح", type: "textarea" },
-      { key: "examples", label: "أمثلة (اختياري)", type: "textarea" },
-    ],
-    validate: (v) => (!v.title.trim() ? "اكتب عنوان القاعدة" : !v.explanation.trim() ? "اكتب الشرح" : null),
-  });
-};
-
-/* ======================================================================
-   SECTION: Task questions — students ask a question tied to a specific
-   task (from renderTask() in the student app); teacher answers here.
-   ====================================================================== */
-SECTION_RENDERERS["task-questions"] = async function (main) {
-  main.innerHTML = `
-    <div class="section-title"><h2 class="heading">أسئلة الطلاب</h2></div>
-    <div id="tq-list"><div class="spinner"></div></div>`;
-  try {
-    const questions = (await Sheet.list("TaskQuestions")).sort((a, b) => new Date(b.date) - new Date(a.date));
-    const wrap = document.getElementById("tq-list");
-    wrap.innerHTML = questions.length ? questions.map((q) => `
-      <div class="mini-card" style="margin-bottom:10px;">
-        <div style="display:flex;justify-content:space-between;gap:8px;">
-          <div>
-            <div style="font-size:11px;color:var(--ink-soft);">${escapeHtml(q.studentName || "")} — ${escapeHtml(q.taskTitle || "")} — ${fmtDate(q.date)}</div>
-            <div style="margin-top:4px;">${escapeHtml(q.question || "")}</div>
-          </div>
-          <span class="status-pill ${q.answer ? "active-pill" : "pending"}">${q.answer ? "تم الرد" : "بانتظار الرد"}</span>
-        </div>
-        <div class="field" style="margin-top:10px;"><textarea class="tq-answer" data-id="${q.id}" rows="2" placeholder="اكتب ردك...">${escapeHtml(q.answer || "")}</textarea></div>
-        <button class="btn-primary tq-save" data-id="${q.id}" style="width:auto;padding:8px 16px;">حفظ الرد</button>
-      </div>`).join("") : `<div class="empty">لا توجد أسئلة من الطلاب حتى الآن</div>`;
-    wrap.querySelectorAll(".tq-save").forEach((btn) => btn.addEventListener("click", async () => {
-      const q = questions.find((x) => x.id === btn.dataset.id);
-      const answer = wrap.querySelector(`.tq-answer[data-id="${btn.dataset.id}"]`).value.trim();
-      if (!answer) return toast("اكتب الرد الأول");
-      try {
-        await Sheet.update("TaskQuestions", q.rowIndex, { answer, answeredAt: new Date().toISOString() });
-        toast("تم حفظ الرد"); showSection("task-questions");
-      } catch { toast("تعذر الحفظ"); }
-    }));
-  } catch (err) { document.getElementById("tq-list").innerHTML = `<div class="empty">تعذر تحميل الأسئلة</div>`; console.error(err); }
-};
-
-</script>
+<script src="./app.js"></script>
 </body>
 </html>
